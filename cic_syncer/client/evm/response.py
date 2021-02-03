@@ -1,7 +1,11 @@
+import json
+
 from cic_syncer.client import translate
 
+
 translations = {
-        'block_number': 'hex_to_int',
+        'block_number': translate.hex_to_int,
+        'get_block': json.dumps,
         }
 
 
@@ -10,7 +14,7 @@ class EVMResponse:
     def __init__(self, item, response_object):
         self.response_object = response_object
         self.item = item
-        self.fn = getattr(translate, translations[self.item])
+        self.fn = translations[self.item]
 
 
     def get_error(self):

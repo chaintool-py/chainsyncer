@@ -97,9 +97,7 @@ chain = args.i
 
 
 def main(): 
-
     block_offset = c.block_number()
-    logg.debug('block offset {}'.format(block_offset))
 
     syncer_backend = SyncerBackend.live(chain, block_offset+1)
     syncer = HeadSyncer(syncer_backend)
@@ -113,7 +111,8 @@ def main():
         syncer.filter.append(task_pair)
 
     try:
-        syncer.loop(int(config.get('SYNCER_LOOP_INTERVAL')))
+        logg.debug('block offset {} {}'.format(block_offset, c))
+        syncer.loop(int(config.get('SYNCER_LOOP_INTERVAL')), c)
     except LoopDone as e:
         sys.stderr.write("sync '{}' done at block {}\n".format(args.mode, e))
 

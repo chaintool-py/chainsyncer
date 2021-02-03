@@ -3,9 +3,6 @@ import uuid
 import logging
 import time
 
-# third-party imports
-import websockets
-
 logg = logging.getLogger()
 
 
@@ -36,10 +33,8 @@ class MinedSyncer(Syncer):
         super(MinedSyncer, self).__init__(backend)
 
 
-    def loop(self, interval):
+    def loop(self, interval, getter):
         while self.running and Syncer.running_global:
-            getter = self.backend.connect()
-            logg.debug('loop execute')
             e = self.get(getter)
             time.sleep(interval)
 
@@ -53,17 +48,9 @@ class HeadSyncer(MinedSyncer):
     def get(self, getter):
         (block_number, tx_number) = self.backend.get()
         block_hash = []
-        try:
-            uu = uuid.uuid4()
-            req = {
-                    'jsonrpc': '2.0',
-                    'method': 'eth_getBlock',
-                    'id': str(uu),
-                    'param': [block_number],
-                    }
-            logg.debug(req)
-        except Exception as e:
-            logg.error(e)
+        uu = uuid.uuid4()
+        res = getter.get_block_by_integer(block_number)
+        logg.debug(res)
 
         return block_hash
 
