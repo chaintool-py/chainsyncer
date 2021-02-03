@@ -15,6 +15,12 @@ def strip_0x(hx):
     return is_hex(hx)
 
 
+def with_0x(hx):
+    if len(hx) >= 2 and hx[:2] == '0x':
+        hx = hx[2:]
+    return '0x' + is_hex(hx)
+
+
 def hex_to_int(hx, endianness='big'):
     hx = strip_0x(hx)
     b = bytes.fromhex(hx)

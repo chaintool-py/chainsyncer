@@ -35,7 +35,9 @@ class MinedSyncer(Syncer):
 
     def loop(self, interval, getter):
         while self.running and Syncer.running_global:
-            e = self.get(getter)
+            block_hash = self.get(getter)
+            if block_hash != None:
+                self.process(getter, block_hash)
             time.sleep(interval)
 
 
@@ -45,12 +47,30 @@ class HeadSyncer(MinedSyncer):
         super(HeadSyncer, self).__init__(backend)
 
 
+    def process(self, getter, block):
+        logg.debug('process block {}'.format(block))
+        block = getter.get_block_by_hash(block.hash)
+        i = 0
+        tx = None
+        while True:
+            try:
+                tx = block.tx(i)
+                logg.debug('tx {}'.format(tx))
+                self.backend.set(block.number(), i)
+                for f in self.filter:
+                    f(getter, block, tx)
+            except IndexError as e:
+                self.backend.set(block.number() + 1, 0)
+                break
+            i += 1
+        
+
     def get(self, getter):
         (block_number, tx_number) = self.backend.get()
         block_hash = []
         uu = uuid.uuid4()
         res = getter.get_block_by_integer(block_number)
-        logg.debug(res)
+        logg.debug('get {}'.format(res))
 
-        return block_hash
+        return res
 

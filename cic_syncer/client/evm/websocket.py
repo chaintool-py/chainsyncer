@@ -6,6 +6,8 @@ import websocket
 
 from .response import EVMResponse
 from cic_syncer.error import RequestError
+from cic_syncer.client.translate import with_0x
+from cic_syncer.client.evm.response import EVMBlock
 
 logg = logging.getLogger()
 
@@ -55,5 +57,31 @@ class EVMWebsocketClient:
         if err != None:
             raise RequestError(err)
 
-        return res.get_result()
+        j = res.get_result()
+        if j == None:
+            return None
+        o = json.loads(j)
+        return EVMBlock(o['hash'], o)
 
+
+    def get_block_by_hash(self, hx_in):
+        req_id = str(uuid.uuid4())
+        hx = with_0x(hx_in)
+        req ={
+                'jsonrpc': '2.0',
+                'method': 'eth_getBlockByHash',
+                'id': str(req_id),
+                'params': [hx, False],
+                }
+        self.conn.send(json.dumps(req))
+        r = self.conn.recv()
+        res = EVMResponse('get_block', json.loads(r))
+        err = res.get_error()
+        if err != None:
+            raise RequestError(err)
+
+        j = res.get_result()
+        if j == None:
+            return None
+        o = json.loads(j)
+        return EVMBlock(o['hash'], o)
