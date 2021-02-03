@@ -10,11 +10,12 @@ class Syncer:
 
     running_global = True
 
-    def __init__(self, backend):
+    def __init__(self, backend, handler):
         self.cursor = None
         self.running = True
         self.backend = backend
         self.filter = []
+        self.handler = handler
 
 
     def chain(self):
@@ -29,8 +30,8 @@ class Syncer:
 
 class MinedSyncer(Syncer):
 
-    def __init__(self, backend):
-        super(MinedSyncer, self).__init__(backend)
+    def __init__(self, backend, handler):
+        super(MinedSyncer, self).__init__(backend, handler)
 
 
     def loop(self, interval, getter):
@@ -43,8 +44,8 @@ class MinedSyncer(Syncer):
 
 class HeadSyncer(MinedSyncer):
 
-    def __init__(self, backend):
-        super(HeadSyncer, self).__init__(backend)
+    def __init__(self, backend, handler):
+        super(HeadSyncer, self).__init__(backend, handler)
 
 
     def process(self, getter, block):
@@ -54,6 +55,7 @@ class HeadSyncer(MinedSyncer):
         tx = None
         while True:
             try:
+                self.filter[0].handle(getter, block, None)
                 tx = block.tx(i)
                 logg.debug('tx {}'.format(tx))
                 self.backend.set(block.number(), i)

@@ -21,6 +21,18 @@ logg = logging.getLogger()
 
 config_dir = '/usr/local/etc/cic-syncer'
 
+
+class Handler:
+
+    def __init__(self, method, domain):
+        self.method = method
+        self.domain = domain
+
+    def handle(self, getter, tx, chain):
+        logg.debug('noop tx {} chain {} method {} domain {}'.format(tx, chain, self.method, self.domain))
+handler = getattr(Handler, 'handle')
+
+
 argparser = argparse.ArgumentParser(description='daemon that monitors transactions in new blocks')
 argparser.add_argument('-p', '--provider', dest='p', type=str, help='chain rpc provider address')
 argparser.add_argument('-c', type=str, default=config_dir, help='config root to use')
@@ -58,7 +70,6 @@ queue = args.q
 dsn = dsn_from_config(config)
 SessionBase.connect(dsn)
 
-# TODO: There is too much code in this file, split it up
 
 transfer_callbacks = []
 for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):
@@ -100,7 +111,7 @@ def main():
     block_offset = c.block_number()
 
     syncer_backend = SyncerBackend.live(chain, block_offset+1)
-    syncer = HeadSyncer(syncer_backend)
+    syncer = HeadSyncer(syncer_backend, handler)
 
     for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):
         task_split = cb.split(':')
@@ -108,7 +119,8 @@ def main():
         if len(task_split) > 1:
             task_queue = task_split[0]
         task_pair = (task_split[1], task_queue)
-        syncer.filter.append(task_pair)
+        h = Handler(task_pair[0], task_pair[1])
+        syncer.filter.append(h)
 
     try:
         logg.debug('block offset {} {}'.format(block_offset, c))
