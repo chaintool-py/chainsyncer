@@ -9,23 +9,18 @@ import re
 
 # third-party imports
 import confini
-import rlp
-
-
-# local imports
-
+from cic_syncer.driver import HeadSyncer
+from cic_syncer.db import dsn_from_config
+from cic_syncer.db.models.base import SessionBase
+from cic_syncer.client.evm.websocket import EVMWebsocketClient
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
-logging.getLogger('websockets.protocol').setLevel(logging.CRITICAL)
-logging.getLogger('web3.RequestManager').setLevel(logging.CRITICAL)
-logging.getLogger('web3.providers.WebsocketProvider').setLevel(logging.CRITICAL)
-logging.getLogger('web3.providers.HTTPProvider').setLevel(logging.CRITICAL)
 
-
-config_dir = os.path.join('/usr/local/etc/cic-eth')
+config_dir = '/usr/local/etc/cic-syncer'
 
 argparser = argparse.ArgumentParser(description='daemon that monitors transactions in new blocks')
+argparser.add_argument('-p', '--provider', dest='p', type=str, help='chain rpc provider address')
 argparser.add_argument('-c', type=str, default=config_dir, help='config root to use')
 argparser.add_argument('-i', '--chain-spec', type=str, dest='i', help='chain spec')
 argparser.add_argument('--abi-dir', dest='abi_dir', type=str, help='Directory containing bytecode and abi')
@@ -33,7 +28,6 @@ argparser.add_argument('--env-prefix', default=os.environ.get('CONFINI_ENV_PREFI
 argparser.add_argument('-q', type=str, default='cic-eth', help='celery queue to submit transaction tasks to')
 argparser.add_argument('-v', help='be verbose', action='store_true')
 argparser.add_argument('-vv', help='be more verbose', action='store_true')
-argparser.add_argument('mode', type=str, help='sync mode: (head|history)', default='head')
 args = argparser.parse_args(sys.argv[1:])
 
 if args.v == True:
@@ -47,15 +41,15 @@ config = confini.Config(config_dir, args.env_prefix)
 config.process()
 # override args
 args_override = {
-        'ETH_ABI_DIR': getattr(args, 'abi_dir'),
         'CIC_CHAIN_SPEC': getattr(args, 'i'),
+        'ETH_PROVIDER': getattr(args, 'p'),
         }
 config.dict_override(args_override, 'cli flag')
 config.censor('PASSWORD', 'DATABASE')
 config.censor('PASSWORD', 'SSL')
 logg.debug('config loaded from {}:\n{}'.format(config_dir, config))
 
-app = celery.Celery(backend=config.get('CELERY_RESULT_URL'),  broker=config.get('CELERY_BROKER_URL'))
+#app = celery.Celery(backend=config.get('CELERY_RESULT_URL'),  broker=config.get('CELERY_BROKER_URL'))
 
 queue = args.q
 
@@ -94,24 +88,28 @@ def tx_filter(w3, tx, rcpt, chain_spec):
     return t
 
 
-
 re_websocket = re.compile('^wss?://')
 re_http = re.compile('^https?://')
-blockchain_provider = config.get('ETH_PROVIDER')
-if re.match(re_websocket, blockchain_provider) != None:
-    blockchain_provider = WebsocketProvider(blockchain_provider)
-elif re.match(re_http, blockchain_provider) != None:
-    blockchain_provider = HTTPProvider(blockchain_provider)
-else:
-    raise ValueError('unknown provider url {}'.format(blockchain_provider))
-
+c = EVMWebsocketClient(config.get('ETH_PROVIDER'))
+chain = args.i
+#blockchain_provider = config.get('ETH_PROVIDER')
+#if re.match(re_websocket, blockchain_provider) != None:
+#    blockchain_provider = WebsocketProvider(blockchain_provider)
+#elif re.match(re_http, blockchain_provider) != None:
+#    blockchain_provider = HTTPProvider(blockchain_provider)
+#else:
+#    raise ValueError('unknown provider url {}'.format(blockchain_provider))
+#
 
 def main(): 
-    chain_spec = ChainSpec.from_chain_str(config.get('CIC_CHAIN_SPEC'))
-    c = RpcClient(chain_spec)
+    #chain_spec = ChainSpec.from_chain_str(config.get('CIC_CHAIN_SPEC'))
+    #c = RpcClient(chain_spec)
 
-    block_offset = c.w3.eth.blockNumber
-    chain = str(chain_spec)
+    block_offset = c.block_number()
+    logg.debug('block offset {}'.format(block_offset))
+
+    return
+    syncer = SyncerBackend.live(chain, block_offset+1)
 
     for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):
         task_split = cb.split(':')
