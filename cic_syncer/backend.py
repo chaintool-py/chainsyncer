@@ -2,8 +2,8 @@
 import logging
 
 # local imports
-from cic_eth.db.models.sync import BlockchainSync
-from cic_eth.db.models.base import SessionBase
+from cic_syncer.db.models.sync import BlockchainSync
+from cic_syncer.db.models.base import SessionBase
 
 logg = logging.getLogger()
 

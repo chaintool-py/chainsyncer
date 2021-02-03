@@ -1,6 +1,7 @@
 # standard imports
 import uuid
 import logging
+import time
 
 # third-party imports
 import websockets
@@ -9,6 +10,8 @@ logg = logging.getLogger()
 
 
 class Syncer:
+
+    running_global = True
 
     def __init__(self, backend):
         self.cursor = None
@@ -30,7 +33,7 @@ class Syncer:
 class MinedSyncer(Syncer):
 
     def __init__(self, backend):
-        super(HeadSyncer, self).__init__(backend)
+        super(MinedSyncer, self).__init__(backend)
 
 
     def loop(self, interval):
@@ -38,6 +41,7 @@ class MinedSyncer(Syncer):
             getter = self.backend.connect()
             logg.debug('loop execute')
             e = self.get(getter)
+            time.sleep(interval)
 
 
 class HeadSyncer(MinedSyncer):

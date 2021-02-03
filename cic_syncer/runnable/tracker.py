@@ -13,6 +13,8 @@ from cic_syncer.driver import HeadSyncer
 from cic_syncer.db import dsn_from_config
 from cic_syncer.db.models.base import SessionBase
 from cic_syncer.client.evm.websocket import EVMWebsocketClient
+from cic_syncer.backend import SyncerBackend
+from cic_syncer.error import LoopDone
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -92,24 +94,15 @@ re_websocket = re.compile('^wss?://')
 re_http = re.compile('^https?://')
 c = EVMWebsocketClient(config.get('ETH_PROVIDER'))
 chain = args.i
-#blockchain_provider = config.get('ETH_PROVIDER')
-#if re.match(re_websocket, blockchain_provider) != None:
-#    blockchain_provider = WebsocketProvider(blockchain_provider)
-#elif re.match(re_http, blockchain_provider) != None:
-#    blockchain_provider = HTTPProvider(blockchain_provider)
-#else:
-#    raise ValueError('unknown provider url {}'.format(blockchain_provider))
-#
+
 
 def main(): 
-    #chain_spec = ChainSpec.from_chain_str(config.get('CIC_CHAIN_SPEC'))
-    #c = RpcClient(chain_spec)
 
     block_offset = c.block_number()
     logg.debug('block offset {}'.format(block_offset))
 
-    return
-    syncer = SyncerBackend.live(chain, block_offset+1)
+    syncer_backend = SyncerBackend.live(chain, block_offset+1)
+    syncer = HeadSyncer(syncer_backend)
 
     for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):
         task_split = cb.split(':')

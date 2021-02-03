@@ -21,7 +21,7 @@ class BlockchainSync(SessionBase):
     :param block_target: Block number to sync until, inclusive
     :type block_target: number
     """
-    __tablename__ = 'blockchain_sync'
+    __tablename__ = 'chain_sync'
 
     blockchain = Column(String)
     block_start = Column(Integer)
