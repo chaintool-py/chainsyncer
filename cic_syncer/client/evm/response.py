@@ -46,3 +46,7 @@ class EVMBlock(Block):
 
     def number(self):
         return translate.hex_to_int(self.obj['number'])
+
+
+    def __str__(self):
+        return str('block {} {}'.format(self.number(), self.hash))

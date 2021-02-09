@@ -1,12 +1,15 @@
+# standard imports
 import logging
 import uuid
 import json
 
+# third-party imports
 import websocket
+from hexathon import add_0x
 
+# local imports
 from .response import EVMResponse
 from cic_syncer.error import RequestError
-from cic_syncer.client.translate import with_0x
 from cic_syncer.client.evm.response import EVMBlock
 
 logg = logging.getLogger()
@@ -66,7 +69,7 @@ class EVMWebsocketClient:
 
     def get_block_by_hash(self, hx_in):
         req_id = str(uuid.uuid4())
-        hx = with_0x(hx_in)
+        hx = add_0x(hx_in)
         req ={
                 'jsonrpc': '2.0',
                 'method': 'eth_getBlockByHash',

@@ -104,13 +104,14 @@ def tx_filter(w3, tx, rcpt, chain_spec):
 re_websocket = re.compile('^wss?://')
 re_http = re.compile('^https?://')
 c = EVMWebsocketClient(config.get('ETH_PROVIDER'))
-chain = args.i
+chain = config.get('CIC_CHAIN_SPEC')
 
 
 def main(): 
     block_offset = c.block_number()
 
-    syncer_backend = SyncerBackend.live(chain, block_offset+1)
+    #syncer_backend = SyncerBackend.live(chain, block_offset+1)
+    syncer_backend = SyncerBackend.live(chain, 0)
     syncer = HeadSyncer(syncer_backend, handler)
 
     for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):

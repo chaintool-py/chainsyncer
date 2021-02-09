@@ -6,3 +6,4 @@ eth-tester==0.5.0b3
 web3==5.12.2
 confini==0.3.6b2
 semver==2.13.0
+hexathon==0.0.1a2
