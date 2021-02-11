@@ -6,8 +6,8 @@ import time
 logg = logging.getLogger()
 
 
-def noop_progress(s):
-    logg.debug(s)
+def noop_progress(s, block_number, tx_index):
+    logg.debug('({},{}) {}'.format(block_number, tx_index, s))
 
 
 class Syncer:
@@ -44,11 +44,16 @@ class MinedSyncer(Syncer):
 
     def loop(self, interval, getter):
         while self.running and Syncer.running_global:
+            g = self.backend.get()
+            start_tx = g[1]
+            self.progress_callback('loop awakened', g[0], start_tx)
             while True:
-                block_hash = self.get(getter)
-                if block_hash == None:
+                block = self.get(getter)
+                if block == None:
                     break
-                self.process(getter, block_hash)
+                self.process(getter, block)
+                self.progress_callback('process block {}'.format(self.backend.get()), block.number, start_tx)
+                start_tx = 0
                 time.sleep(self.yield_delay)
             time.sleep(interval)
 
@@ -60,18 +65,18 @@ class HeadSyncer(MinedSyncer):
 
 
     def process(self, getter, block):
-        logg.debug('process {}'.format(block))
+        logg.debug('process block {}'.format(block))
         i = 0
         tx = None
         while True:
             try:
                 #self.filter[0].handle(getter, block, None)
                 tx = block.tx(i)
-                self.progress_callback('processing {}'.format(tx))
+                self.progress_callback('processing {}'.format(repr(tx)), block.number, i)
                 self.backend.set(block.number, i)
                 for f in self.filter:
                     f.handle(getter, block, tx)
-                    self.progress_callback('applied filter {} on {}'.format(f.name(), tx))
+                    self.progress_callback('applied filter {} on {}'.format(f.name(), repr(tx)), block.number, i)
             except IndexError as e:
                 self.backend.set(block.number + 1, 0)
                 break
