@@ -1,8 +1,8 @@
 import json
 
-from cic_syncer.client import translate
-from cic_syncer.client.block import Block
-from cic_syncer.client.tx import Tx
+from chainsyncer.client import translate
+from chainsyncer.client.block import Block
+from chainsyncer.client.tx import Tx
 
 
 translations = {

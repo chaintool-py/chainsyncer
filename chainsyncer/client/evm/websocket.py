@@ -9,8 +9,8 @@ from hexathon import add_0x
 
 # local imports
 from .response import EVMResponse
-from cic_syncer.error import RequestError
-from cic_syncer.client.evm.response import EVMBlock
+from chainsyncer.error import RequestError
+from chainsyncer.client.evm.response import EVMBlock
 
 logg = logging.getLogger()
 
@@ -44,7 +44,7 @@ class EVMWebsocketClient:
         return res.get_result()
 
 
-    def get_block_by_integer(self, n):
+    def block_by_integer(self, n):
         req_id = str(uuid.uuid4())
         nhx = '0x' + n.to_bytes(8, 'big').hex()
         req = {
@@ -67,7 +67,7 @@ class EVMWebsocketClient:
         return EVMBlock(o['hash'], o)
 
 
-    def get_block_by_hash(self, hx_in):
+    def block_by_hash(self, hx_in):
         req_id = str(uuid.uuid4())
         hx = add_0x(hx_in)
         req ={

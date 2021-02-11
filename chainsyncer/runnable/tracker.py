@@ -9,12 +9,12 @@ import re
 
 # third-party imports
 import confini
-from cic_syncer.driver import HeadSyncer
-from cic_syncer.db import dsn_from_config
-from cic_syncer.db.models.base import SessionBase
-from cic_syncer.client.evm.websocket import EVMWebsocketClient
-from cic_syncer.backend import SyncerBackend
-from cic_syncer.error import LoopDone
+from chainlib.eth.connection import HTTPConnection
+from chainsyncer.driver import HeadSyncer
+from chainsyncer.db import dsn_from_config
+from chainsyncer.db.models.base import SessionBase
+from chainsyncer.backend import SyncerBackend
+from chainsyncer.error import LoopDone
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -55,7 +55,7 @@ config = confini.Config(config_dir, args.env_prefix)
 config.process()
 # override args
 args_override = {
-        'CIC_CHAIN_SPEC': getattr(args, 'i'),
+        'CHAIN_SPEC': getattr(args, 'i'),
         'ETH_PROVIDER': getattr(args, 'p'),
         }
 config.dict_override(args_override, 'cli flag')
@@ -70,58 +70,15 @@ queue = args.q
 dsn = dsn_from_config(config)
 SessionBase.connect(dsn)
 
-
-transfer_callbacks = []
-for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):
-    task_split = cb.split(':')
-    task_queue = queue
-    if len(task_split) > 1:
-        task_queue = task_split[0]
-    task_pair = (task_split[1], task_queue)
-    transfer_callbacks.append(task_pair)
-
-
-def tx_filter(w3, tx, rcpt, chain_spec):
-    tx_hash_hex = tx.hash.hex()
-    otx = Otx.load(tx_hash_hex)
-    if otx == None:
-        logg.debug('tx {} not found locally, skipping'.format(tx_hash_hex))
-        return None
-    logg.info('otx found {}'.format(otx.tx_hash))
-    s = celery.signature(
-            'cic_eth.queue.tx.set_final_status',
-            [
-                tx_hash_hex,
-                rcpt.blockNumber,
-                rcpt.status == 0,
-                ],
-            queue=queue,
-            )
-    t = s.apply_async()
-    return t
-
-
-re_websocket = re.compile('^wss?://')
-re_http = re.compile('^https?://')
-c = EVMWebsocketClient(config.get('ETH_PROVIDER'))
-chain = config.get('CIC_CHAIN_SPEC')
+c = HTTPConnection(config.get('ETH_PROVIDER'))
+chain = config.get('CHAIN_SPEC')
 
 
 def main(): 
     block_offset = c.block_number()
 
-    #syncer_backend = SyncerBackend.live(chain, block_offset+1)
     syncer_backend = SyncerBackend.live(chain, 0)
-    syncer = HeadSyncer(syncer_backend, handler)
-
-    for cb in config.get('TASKS_SYNCER_CALLBACKS', '').split(','):
-        task_split = cb.split(':')
-        task_queue = queue
-        if len(task_split) > 1:
-            task_queue = task_split[0]
-        task_pair = (task_split[1], task_queue)
-        h = Handler(task_pair[0], task_pair[1])
-        syncer.filter.append(h)
+    syncer = HeadSyncer(syncer_backend)
 
     try:
         logg.debug('block offset {} {}'.format(block_offset, c))

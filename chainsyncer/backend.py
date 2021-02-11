@@ -1,9 +1,10 @@
 # standard imports
 import logging
+import uuid
 
 # local imports
-from cic_syncer.db.models.sync import BlockchainSync
-from cic_syncer.db.models.base import SessionBase
+from chainsyncer.db.models.sync import BlockchainSync
+from chainsyncer.db.models.base import SessionBase
 
 logg = logging.getLogger()
 
@@ -194,3 +195,22 @@ class SyncerBackend:
         session.close()
 
         return SyncerBackend(chain, object_id)
+
+
+class MemBackend:
+
+    def __init__(self, chain_spec, object_id):
+        self.object_id = object_id
+        self.chain_spec = chain_spec
+        self.block_height = 0
+        self.tx_height = 0
+
+
+    def set(self, block_height, tx_height):
+        logg.debug('stateless backend received {} {}'.format(block_height, tx_height))
+        self.block_height = block_height
+        self.tx_height = tx_height
+
+
+    def get(self):
+        return (self.block_height, self.tx_height)

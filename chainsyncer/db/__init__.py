@@ -3,7 +3,7 @@ import os
 import logging
 
 # local imports
-from cic_syncer.db.models.base import SessionBase
+from chainsyncer.db.models.base import SessionBase
 
 logg = logging.getLogger()
 

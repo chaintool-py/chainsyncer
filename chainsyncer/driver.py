@@ -10,12 +10,11 @@ class Syncer:
 
     running_global = True
 
-    def __init__(self, backend, handler):
+    def __init__(self, backend):
         self.cursor = None
         self.running = True
         self.backend = backend
         self.filter = []
-        self.handler = handler
 
 
     def chain(self):
@@ -27,11 +26,14 @@ class Syncer:
         return self.bc_cache.chain()
 
 
+    def add_filter(self, f):
+        self.filter.append(f)
+
 
 class MinedSyncer(Syncer):
 
-    def __init__(self, backend, handler):
-        super(MinedSyncer, self).__init__(backend, handler)
+    def __init__(self, backend):
+        super(MinedSyncer, self).__init__(backend)
 
 
     def loop(self, interval, getter):
@@ -46,13 +48,13 @@ class MinedSyncer(Syncer):
 
 class HeadSyncer(MinedSyncer):
 
-    def __init__(self, backend, handler):
-        super(HeadSyncer, self).__init__(backend, handler)
+    def __init__(self, backend):
+        super(HeadSyncer, self).__init__(backend)
 
 
     def process(self, getter, block):
         logg.debug('process {}'.format(block))
-        block = getter.get_block_by_hash(block.hash)
+        block = getter.block_by_hash(block.hash)
         i = 0
         tx = None
         while True:
@@ -62,7 +64,7 @@ class HeadSyncer(MinedSyncer):
                 logg.debug('tx {}'.format(tx))
                 self.backend.set(block.number(), i)
                 for f in self.filter:
-                    f.handle(getter, block, tx)
+                    f(getter, block, tx)
             except IndexError as e:
                 self.backend.set(block.number() + 1, 0)
                 break
@@ -73,7 +75,7 @@ class HeadSyncer(MinedSyncer):
         (block_number, tx_number) = self.backend.get()
         block_hash = []
         uu = uuid.uuid4()
-        res = getter.get_block_by_integer(block_number)
+        res = getter.block_by_integer(block_number)
         logg.debug('get {}'.format(res))
 
         return res
