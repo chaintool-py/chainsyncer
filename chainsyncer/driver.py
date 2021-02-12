@@ -43,18 +43,21 @@ class MinedSyncer(Syncer):
 
 
     def loop(self, interval, getter):
+        g = self.backend.get()
+        last_tx = g[1]
+        last_block = g[0]
+        self.progress_callback('loop started', last_block, last_tx)
         while self.running and Syncer.running_global:
-            g = self.backend.get()
-            start_tx = g[1]
-            self.progress_callback('loop awakened', g[0], start_tx)
             while True:
                 block = self.get(getter)
                 if block == None:
                     break
+                last_block = block.number
                 self.process(getter, block)
-                self.progress_callback('process block {}'.format(self.backend.get()), block.number, start_tx)
                 start_tx = 0
+                self.progress_callback('processed block {}'.format(self.backend.get()), last_block, last_tx)
                 time.sleep(self.yield_delay)
+            #self.progress_callback('loop ended', last_block + 1, last_tx)
             time.sleep(interval)
 
 
