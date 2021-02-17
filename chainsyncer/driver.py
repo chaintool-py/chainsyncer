@@ -3,6 +3,15 @@ import uuid
 import logging
 import time
 
+# external imports
+from chainlib.eth.block import (
+        block_by_number,
+        Block,
+        )
+
+# local imports
+from chainsyncer.filter import SyncFilter
+
 logg = logging.getLogger()
 
 
@@ -19,7 +28,7 @@ class Syncer:
         self.cursor = None
         self.running = True
         self.backend = backend
-        self.filter = []
+        self.filter = SyncFilter()
         self.progress_callback = progress_callback
 
 
@@ -33,64 +42,63 @@ class Syncer:
 
 
     def add_filter(self, f):
-        self.filter.append(f)
+        self.filter.add(f)
 
 
-class MinedSyncer(Syncer):
+class BlockSyncer(Syncer):
 
-    def __init__(self, backend, progress_callback):
-        super(MinedSyncer, self).__init__(backend, progress_callback)
+    def __init__(self, backend, progress_callback=noop_progress):
+        super(BlockSyncer, self).__init__(backend, progress_callback)
 
 
-    def loop(self, interval, getter):
+    def loop(self, interval, conn):
         g = self.backend.get()
         last_tx = g[1]
         last_block = g[0]
         self.progress_callback('loop started', last_block, last_tx)
         while self.running and Syncer.running_global:
             while True:
-                block = self.get(getter)
-                if block == None:
+                try:
+                    block = self.get(conn)
+                except Exception:
                     break
                 last_block = block.number
-                self.process(getter, block)
+                self.process(conn, block)
                 start_tx = 0
                 self.progress_callback('processed block {}'.format(self.backend.get()), last_block, last_tx)
                 time.sleep(self.yield_delay)
-            #self.progress_callback('loop ended', last_block + 1, last_tx)
+            self.progress_callback('loop ended', last_block + 1, last_tx)
             time.sleep(interval)
 
 
-class HeadSyncer(MinedSyncer):
+class HeadSyncer(BlockSyncer):
 
-    def __init__(self, backend, progress_callback):
+    def __init__(self, backend, progress_callback=noop_progress):
         super(HeadSyncer, self).__init__(backend, progress_callback)
 
 
-    def process(self, getter, block):
+    def process(self, conn, block):
         logg.debug('process block {}'.format(block))
         i = 0
         tx = None
         while True:
             try:
-                #self.filter[0].handle(getter, block, None)
                 tx = block.tx(i)
                 self.progress_callback('processing {}'.format(repr(tx)), block.number, i)
                 self.backend.set(block.number, i)
-                for f in self.filter:
-                    f.handle(getter, block, tx)
-                    self.progress_callback('applied filter {} on {}'.format(f.name(), repr(tx)), block.number, i)
+                self.filter.apply(conn, block, tx)
             except IndexError as e:
                 self.backend.set(block.number + 1, 0)
                 break
             i += 1
         
 
-    def get(self, getter):
+    def get(self, conn):
         (block_number, tx_number) = self.backend.get()
         block_hash = []
-        uu = uuid.uuid4()
-        res = getter.get(block_number)
-        logg.debug('get {}'.format(res))
+        o = block_by_number(block_number)
+        r = conn.do(o)
+        b = Block(r)
+        logg.debug('get {}'.format(b))
 
-        return res
+        return b

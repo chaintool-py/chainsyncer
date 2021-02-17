@@ -7,14 +7,19 @@ import argparse
 import sys
 import re
 
-# third-party imports
+# external imports
 import confini
 from chainlib.eth.connection import HTTPConnection
+from chainlib.eth.block import block_latest
+from chainlib.chain import ChainSpec
+
+# local imports
 from chainsyncer.driver import HeadSyncer
 from chainsyncer.db import dsn_from_config
 from chainsyncer.db.models.base import SessionBase
 from chainsyncer.backend import SyncerBackend
 from chainsyncer.error import LoopDone
+from chainsyncer.filter import NoopFilter
 
 logging.basicConfig(level=logging.WARNING)
 logg = logging.getLogger()
@@ -39,6 +44,7 @@ argparser.add_argument('-c', type=str, default=config_dir, help='config root to 
 argparser.add_argument('-i', '--chain-spec', type=str, dest='i', help='chain spec')
 argparser.add_argument('--abi-dir', dest='abi_dir', type=str, help='Directory containing bytecode and abi')
 argparser.add_argument('--env-prefix', default=os.environ.get('CONFINI_ENV_PREFIX'), dest='env_prefix', type=str, help='environment prefix for variables to overwrite configuration')
+argparser.add_argument('--offset', type=int, help='block number to start sync')
 argparser.add_argument('-q', type=str, default='cic-eth', help='celery queue to submit transaction tasks to')
 argparser.add_argument('-v', help='be verbose', action='store_true')
 argparser.add_argument('-vv', help='be more verbose', action='store_true')
@@ -55,7 +61,7 @@ config = confini.Config(config_dir, args.env_prefix)
 config.process()
 # override args
 args_override = {
-        'CHAIN_SPEC': getattr(args, 'i'),
+        'SYNCER_CHAIN_SPEC': getattr(args, 'i'),
         'ETH_PROVIDER': getattr(args, 'p'),
         }
 config.dict_override(args_override, 'cli flag')
@@ -70,19 +76,29 @@ queue = args.q
 dsn = dsn_from_config(config)
 SessionBase.connect(dsn)
 
-c = HTTPConnection(config.get('ETH_PROVIDER'))
-chain = config.get('CHAIN_SPEC')
+conn = HTTPConnection(config.get('ETH_PROVIDER'))
+
+chain = ChainSpec.from_chain_str(config.get('SYNCER_CHAIN_SPEC'))
+
+block_offset = args.offset
 
 
 def main(): 
-    block_offset = c.block_number()
+    global block_offset 
+
+    if block_offset == None:
+        o = block_latest()
+        r = conn.do(o)
+        block_offset = r[1]
 
     syncer_backend = SyncerBackend.live(chain, 0)
     syncer = HeadSyncer(syncer_backend)
+    fltr = NoopFilter()
+    syncer.add_filter(fltr)
 
     try:
-        logg.debug('block offset {} {}'.format(block_offset, c))
-        syncer.loop(int(config.get('SYNCER_LOOP_INTERVAL')), c)
+        logg.debug('block offset {}'.format(block_offset))
+        syncer.loop(int(config.get('SYNCER_LOOP_INTERVAL')), conn)
     except LoopDone as e:
         sys.stderr.write("sync '{}' done at block {}\n".format(args.mode, e))
 

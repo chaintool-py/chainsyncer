@@ -2,6 +2,9 @@
 import logging
 import uuid
 
+# third-party imports
+from chainlib.chain import ChainSpec
+
 # local imports
 from chainsyncer.db.models.sync import BlockchainSync
 from chainsyncer.db.models.base import SessionBase
@@ -176,7 +179,7 @@ class SyncerBackend:
 
 
     @staticmethod
-    def live(chain, block_height):
+    def live(chain_spec, block_height):
         """Creates a new open-ended syncer session starting at the given block height.
 
         :param chain: Chain spec of chain that syncer is running for.
@@ -188,13 +191,13 @@ class SyncerBackend:
         """
         object_id = None
         session = SessionBase.create_session()
-        o = BlockchainSync(chain, block_height, 0, None)
+        o = BlockchainSync(str(chain_spec), block_height, 0, None)
         session.add(o)
         session.commit()
         object_id = o.id
         session.close()
 
-        return SyncerBackend(chain, object_id)
+        return SyncerBackend(chain_spec, object_id)
 
 
 class MemBackend:
