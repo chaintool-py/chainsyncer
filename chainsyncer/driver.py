@@ -28,7 +28,7 @@ class Syncer:
         self.cursor = None
         self.running = True
         self.backend = backend
-        self.filter = SyncFilter()
+        self.filter = SyncFilter(backend)
         self.progress_callback = progress_callback
 
 

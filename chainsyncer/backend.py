@@ -32,7 +32,8 @@ class SyncerBackend:
     def connect(self):
         """Loads the state of the syncer session with the given id.
         """
-        self.db_session = SessionBase.create_session()
+        if self.db_session == None:
+            self.db_session = SessionBase.create_session()
         q = self.db_session.query(BlockchainSync)
         q = q.filter(BlockchainSync.id==self.object_id)
         self.db_object = q.first()
@@ -46,6 +47,7 @@ class SyncerBackend:
         self.db_session.add(self.db_object)
         self.db_session.commit()
         self.db_session.close()
+        self.db_session = None
        
 
     def chain(self):

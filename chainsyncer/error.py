@@ -6,3 +6,7 @@ class LoopDone(Exception):
 
 class RequestError(Exception):
     pass
+
+
+class BackendError(Exception):
+    pass
