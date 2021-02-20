@@ -42,5 +42,3 @@ class TestBase(unittest.TestCase):
     def tearDown(self):
         SessionBase.disconnect()
         os.unlink(self.db_path)
-
-

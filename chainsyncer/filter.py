@@ -1,6 +1,9 @@
 # standard imports
 import logging
 
+# external imports
+import sqlalchemy
+
 # local imports
 from .error import BackendError
 

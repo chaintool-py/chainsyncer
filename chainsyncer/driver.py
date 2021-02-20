@@ -15,7 +15,7 @@ from chainsyncer.filter import SyncFilter
 logg = logging.getLogger()
 
 
-def noop_progress(s, block_number, tx_index):
+def noop_callback(block_number, tx_index, s=None):
     logg.debug('({},{}) {}'.format(block_number, tx_index, s))
 
 
@@ -24,12 +24,13 @@ class Syncer:
     running_global = True
     yield_delay=0.005
 
-    def __init__(self, backend, progress_callback=noop_progress):
+    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
         self.cursor = None
         self.running = True
         self.backend = backend
         self.filter = SyncFilter(backend)
         self.progress_callback = progress_callback
+        self.loop_callback = loop_callback
 
 
     def chain(self):
@@ -45,18 +46,20 @@ class Syncer:
         self.filter.add(f)
 
 
-class BlockSyncer(Syncer):
+class BlockPollSyncer(Syncer):
 
-    def __init__(self, backend, progress_callback=noop_progress):
-        super(BlockSyncer, self).__init__(backend, progress_callback)
+    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
+        super(BlockPollSyncer, self).__init__(backend, loop_callback, progress_callback)
 
 
     def loop(self, interval, conn):
         g = self.backend.get()
         last_tx = g[1]
         last_block = g[0]
-        self.progress_callback('loop started', last_block, last_tx)
+        self.progress_callback(last_block, last_tx, 'loop started')
         while self.running and Syncer.running_global:
+            if self.loop_callback != None:
+                self.loop_callback(last_block, last_tx)
             while True:
                 try:
                     block = self.get(conn)
@@ -65,16 +68,16 @@ class BlockSyncer(Syncer):
                 last_block = block.number
                 self.process(conn, block)
                 start_tx = 0
-                self.progress_callback('processed block {}'.format(self.backend.get()), last_block, last_tx)
+                self.progress_callback(last_block, last_tx, 'processed block {}'.format(self.backend.get()))
                 time.sleep(self.yield_delay)
-            self.progress_callback('loop ended', last_block + 1, last_tx)
+            self.progress_callback(last_block + 1, last_tx, 'loop ended')
             time.sleep(interval)
 
 
-class HeadSyncer(BlockSyncer):
+class HeadSyncer(BlockPollSyncer):
 
-    def __init__(self, backend, progress_callback=noop_progress):
-        super(HeadSyncer, self).__init__(backend, progress_callback)
+    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
+        super(HeadSyncer, self).__init__(backend, loop_callback, progress_callback)
 
 
     def process(self, conn, block):
@@ -84,7 +87,7 @@ class HeadSyncer(BlockSyncer):
         while True:
             try:
                 tx = block.tx(i)
-                self.progress_callback('processing {}'.format(repr(tx)), block.number, i)
+                self.progress_callback(block.number, i, 'processing {}'.format(repr(tx)))
                 self.backend.set(block.number, i)
                 self.filter.apply(conn, block, tx)
             except IndexError as e:

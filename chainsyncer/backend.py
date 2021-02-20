@@ -209,6 +209,15 @@ class MemBackend:
         self.chain_spec = chain_spec
         self.block_height = 0
         self.tx_height = 0
+        self.db_session = None
+
+
+    def connect(self):
+        pass
+
+
+    def disconnect(self):
+        pass
 
 
     def set(self, block_height, tx_height):
