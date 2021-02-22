@@ -31,6 +31,9 @@ class BlockchainSyncFilter(SessionBase):
 
         if flags == None:
             flags = bytearray(0)
+        else: # TODO: handle bytes too
+            bytecount = int((count - 1) / 8 + 1) + 1
+            flags = flags.to_bytes(bytecount, 'big')
         self.flags_start = flags
         self.flags = flags
 
@@ -54,22 +57,22 @@ class BlockchainSyncFilter(SessionBase):
 
 
     def start(self):
-        return int.from_bytes(self.flags_start, 'big')
+        return (int.from_bytes(self.flags_start, 'big'), self.count, self.digest)
 
 
     def cursor(self):
-        return int.from_bytes(self.flags, 'big')
-
-
-    def clear(self):
-        self.flags = 0
+        return (int.from_bytes(self.flags, 'big'), self.count, self.digest)
 
 
     def target(self):
         n = 0
         for i in range(self.count):
             n |= (1 << self.count) - 1
-        return n
+        return (n, self.count, self.digest)
+
+
+    def clear(self):
+        self.flags = 0
 
 
     def set(self, n):

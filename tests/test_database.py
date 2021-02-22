@@ -54,19 +54,21 @@ class TestDatabase(TestBase):
         o = session.query(BlockchainSyncFilter).get(filter_id)
         self.assertEqual(len(o.flags), 2)
 
-        t = o.target()
+        (t, c, d) = o.target()
         self.assertEqual(t, (1 << 9) - 1)
 
         for i in range(9):
             o.set(i)
 
-        c = o.cursor()
-        self.assertEqual(c, t)
+        (f, c, d) = o.cursor()
+        self.assertEqual(f, t)
+        self.assertEqual(c, 9)
+        self.assertEqual(d, o.digest)
 
         session.close()
 
 
-    def test_backend_resume(self):
+    def test_backend_retrieve(self):
         s = SyncerBackend.live(self.chain_spec, 42)
         s.register_filter('foo')
         s.register_filter('bar')
@@ -77,7 +79,43 @@ class TestDatabase(TestBase):
         s = SyncerBackend.first(self.chain_spec)
         logg.debug('start {}'.format(s))
         self.assertEqual(s.get(), ((42,13), 0))
+
+
+    def test_backend_initial(self):
+        with self.assertRaises(ValueError):
+            s = SyncerBackend.initial(self.chain_spec, 42, 42)
         
+        with self.assertRaises(ValueError):
+            s = SyncerBackend.initial(self.chain_spec, 42, 43)
+        
+        s = SyncerBackend.initial(self.chain_spec, 42, 13)
+
+        s.set(43, 13)
+
+        s = SyncerBackend.first(self.chain_spec)
+        self.assertEqual(s.get(), ((43,13), 0))
+        self.assertEqual(s.start(), ((13,0), 0))
+
+
+    def test_backend_resume(self):
+        s = SyncerBackend.resume(self.chain_spec, 666)
+        self.assertEqual(len(s), 0)
+
+        s = SyncerBackend.live(self.chain_spec, 42)
+        original_id = s.object_id
+        s = SyncerBackend.resume(self.chain_spec, 666)
+        self.assertEqual(len(s), 1)
+        resumed_id = s[0].object_id
+        self.assertEqual(resumed_id, original_id + 1)
+
+
+    def test_backend_resume_several(self):
+        s = SyncerBackend.live(self.chain_spec, 42)
+        s.set(43, 13)
+        s = SyncerBackend.resume(self.chain_spec, 666)
+        s[0].set(123, 2)
+        s = SyncerBackend.resume(self.chain_spec, 1024)
+        self.assertEqual(len(s), 2)
 
 if __name__ == '__main__':
     unittest.main()

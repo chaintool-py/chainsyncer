@@ -61,7 +61,7 @@ class BlockchainSync(SessionBase):
 
 
     @staticmethod
-    def get_last_live_height(current, session=None):
+    def get_last_live(current, session=None):
         """Get the most recent open-ended ("live") syncer record.
 
         :param current: Current block number
@@ -71,21 +71,19 @@ class BlockchainSync(SessionBase):
         :returns: Block and transaction number, respectively
         :rtype: tuple
         """
-        local_session = False
-        if session == None:
-            session = SessionBase.create_session()
-            local_session = True
-        q = session.query(BlockchainSync)
+        session = SessionBase.bind_session(session)
+
+        q = session.query(BlockchainSync.id)
         q = q.filter(BlockchainSync.block_target==None)
         q = q.order_by(BlockchainSync.date_created.desc())
-        o = q.first()
-        if local_session:
-            session.close()
+        object_id = q.first()
 
-        if o == None:
-            return (0, 0)
+        SessionBase.release_session(session)
 
-        return (o.block_cursor, o.tx_cursor)
+        if object_id == None:
+            return None
+
+        return object_id[0]
 
 
     @staticmethod
