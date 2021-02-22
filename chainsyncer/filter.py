@@ -39,7 +39,8 @@ class SyncFilter:
             logg.debug('applying filter {}'.format(str(f)))
             f.filter(conn, block, tx, self.backend.db_session)
             self.backend.complete_filter(i)
-        self.backend.disconnect()
+        if session != None:
+            self.backend.disconnect()
 
 
 class NoopFilter:

@@ -2,12 +2,14 @@
 import uuid
 import logging
 import time
+import signal
 
 # external imports
 from chainlib.eth.block import (
         block_by_number,
         Block,
         )
+from chainlib.eth.tx import receipt
 
 # local imports
 from chainsyncer.filter import SyncFilter
@@ -23,6 +25,7 @@ class Syncer:
 
     running_global = True
     yield_delay=0.005
+    signal_set = False
 
     def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
         self.cursor = None
@@ -31,6 +34,22 @@ class Syncer:
         self.filter = SyncFilter(backend)
         self.progress_callback = progress_callback
         self.loop_callback = loop_callback
+        if not Syncer.signal_set:
+            signal.signal(signal.SIGINT, Syncer.__sig_terminate)
+            signal.signal(signal.SIGTERM, Syncer.__sig_terminate)
+            Syncer.signal_set = True
+
+
+    @staticmethod
+    def __sig_terminate(sig, frame):
+        logg.warning('got signal {}'.format(sig))
+        Syncer.terminate()
+
+
+    @staticmethod
+    def terminate():
+        logg.info('termination requested!')
+        Syncer.running_global = False
 
 
     def chain(self):
@@ -61,7 +80,7 @@ class BlockPollSyncer(Syncer):
         while self.running and Syncer.running_global:
             if self.loop_callback != None:
                 self.loop_callback(last_block, last_tx)
-            while True:
+            while True and Syncer.running_global:
                 try:
                     block = self.get(conn)
                 except Exception as e:
@@ -89,6 +108,8 @@ class HeadSyncer(BlockPollSyncer):
         while True:
             try:
                 tx = block.tx(i)
+                rcpt = conn.do(receipt(tx.hash))
+                tx.apply_receipt(rcpt)
                 self.progress_callback(block.number, i, 'processing {}'.format(repr(tx)))
                 self.backend.set(block.number, i)
                 self.filter.apply(conn, block, tx)
