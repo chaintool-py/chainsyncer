@@ -79,7 +79,7 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.cursor()
-        filter_state = self.db_object_filter.filter()
+        filter_state = self.db_object_filter.cursor()
         self.disconnect()
         return (pair, filter_state,)
    
@@ -95,7 +95,7 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.set(block_height, tx_height)
-        filter_state = self.db_object_filter.filter()
+        filter_state = self.db_object_filter.cursor()
         self.disconnect()
         return (pair, filter_state,)
 

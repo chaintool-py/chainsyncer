@@ -126,6 +126,7 @@ class BlockchainSync(SessionBase):
         """
         self.block_cursor = block_height
         self.tx_cursor = tx_height
+        return (self.block_cursor, self.tx_cursor,)
 
 
     def cursor(self):
