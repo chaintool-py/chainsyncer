@@ -121,7 +121,7 @@ class SyncerBackend:
         """
         self.connect()
         target = self.db_object.target()
-        (filter_state, count, digest) = self.db_object_filter.target()
+        (filter_target, count, digest) = self.db_object_filter.target()
         self.disconnect()
         return (target, filter_target,)
 
@@ -190,12 +190,22 @@ class SyncerBackend:
 
         object_id = None
 
+        highest_unsynced_block = 0
+        highest_unsynced_tx = 0
+        object_id = BlockchainSync.get_last(session=session, live=False)
+        if object_id != None:
+            q = session.query(BlockchainSync)
+            o = q.get(object_id)
+            (highest_unsynced_block, highest_unsynced_index) = o.cursor()
+        
         for object_id in BlockchainSync.get_unsynced(session=session):
             logg.debug('block syncer resume added previously unsynced sync entry id {}'.format(object_id))
-            syncers.append(SyncerBackend(chain_spec, object_id))
+            s = SyncerBackend(chain_spec, object_id)
+            syncers.append(s)
 
-        last_live_id = BlockchainSync.get_last_live(block_height, session=session)
+        last_live_id = BlockchainSync.get_last(session=session)
         logg.debug('last_live_id {}'.format(last_live_id))
+        logg.debug('higesst {} {}'.format(highest_unsynced_block, highest_unsynced_tx))
         if last_live_id != None:
 
             q = session.query(BlockchainSync)
@@ -204,7 +214,8 @@ class SyncerBackend:
             (block_resume, tx_resume) = o.cursor()
             session.flush()
 
-            if block_height != block_resume:
+            #if block_height != block_resume:
+            if highest_unsynced_block < block_resume: 
 
                 q = session.query(BlockchainSyncFilter)
                 q = q.filter(BlockchainSyncFilter.chain_sync_id==last_live_id)

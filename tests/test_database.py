@@ -67,7 +67,6 @@ class TestDatabase(TestBase):
 
         session.close()
 
-
     def test_backend_retrieve(self):
         s = SyncerBackend.live(self.chain_spec, 42)
         s.register_filter('foo')
@@ -107,15 +106,46 @@ class TestDatabase(TestBase):
         self.assertEqual(len(s), 1)
         resumed_id = s[0].object_id
         self.assertEqual(resumed_id, original_id + 1)
+        self.assertEqual(s[0].get(), ((42, 0), 0))
 
 
+    def test_backend_resume_when_completed(self):
+        s = SyncerBackend.live(self.chain_spec, 42)
+
+        s = SyncerBackend.resume(self.chain_spec, 666)
+        s[0].set(666, 0)
+    
+        s = SyncerBackend.resume(self.chain_spec, 666)
+        self.assertEqual(len(s), 0)
+        
+    
     def test_backend_resume_several(self):
         s = SyncerBackend.live(self.chain_spec, 42)
         s.set(43, 13)
+        
         s = SyncerBackend.resume(self.chain_spec, 666)
+        SyncerBackend.live(self.chain_spec, 666)
         s[0].set(123, 2)
+
+        logg.debug('>>>>>')
         s = SyncerBackend.resume(self.chain_spec, 1024)
+        SyncerBackend.live(self.chain_spec, 1024) 
+        s[0].connect()
+        logg.debug('syncer 1 {}'.format(s[0].db_object))
+        s[0].disconnect()
+        s[1].connect()
+        logg.debug('syncer 2 {}'.format(s[1].db_object))
+        s[1].disconnect()
+
+
+
         self.assertEqual(len(s), 2)
+        self.assertEqual(s[0].target(), (666, 0))
+        self.assertEqual(s[0].get(), ((123, 2), 0))
+        self.assertEqual(s[1].target(), (1024, 0))
+        self.assertEqual(s[1].get(), ((666, 0), 0))
+
+
 
 if __name__ == '__main__':
     unittest.main()

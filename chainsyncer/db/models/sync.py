@@ -61,11 +61,9 @@ class BlockchainSync(SessionBase):
 
 
     @staticmethod
-    def get_last_live(current, session=None):
+    def get_last(session=None, live=True):
         """Get the most recent open-ended ("live") syncer record.
 
-        :param current: Current block number
-        :type current: number
         :param session: Session to use. If not specified, a separate session will be created for this method only.
         :type session: SqlAlchemy Session
         :returns: Block and transaction number, respectively
@@ -74,7 +72,10 @@ class BlockchainSync(SessionBase):
         session = SessionBase.bind_session(session)
 
         q = session.query(BlockchainSync.id)
-        q = q.filter(BlockchainSync.block_target==None)
+        if live:
+            q = q.filter(BlockchainSync.block_target==None)
+        else:
+            q = q.filter(BlockchainSync.block_target!=None)
         q = q.order_by(BlockchainSync.date_created.desc())
         object_id = q.first()
 
@@ -169,3 +170,20 @@ class BlockchainSync(SessionBase):
         self.block_target = block_target
         self.date_created = datetime.datetime.utcnow()
         self.date_updated = datetime.datetime.utcnow()
+
+
+    def __str__(self):
+        return """object_id: {}
+start: {}:{}
+cursor: {}:{}
+target: {}
+""".format(
+        self.id,
+        self.block_start,
+        self.tx_start,
+        self.block_cursor,
+        self.tx_cursor,
+        self.block_target,
+        )
+
+
