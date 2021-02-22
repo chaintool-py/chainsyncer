@@ -44,6 +44,7 @@ class Syncer:
 
     def add_filter(self, f):
         self.filter.add(f)
+        self.backend.register_filter(str(f))
 
 
 class BlockPollSyncer(Syncer):
@@ -53,7 +54,7 @@ class BlockPollSyncer(Syncer):
 
 
     def loop(self, interval, conn):
-        g = self.backend.get()
+        (g, flags) = self.backend.get()
         last_tx = g[1]
         last_block = g[0]
         self.progress_callback(last_block, last_tx, 'loop started')
@@ -63,7 +64,8 @@ class BlockPollSyncer(Syncer):
             while True:
                 try:
                     block = self.get(conn)
-                except Exception:
+                except Exception as e:
+                    logg.debug('erro {}'.format(e))
                     break
                 last_block = block.number
                 self.process(conn, block)
@@ -97,7 +99,9 @@ class HeadSyncer(BlockPollSyncer):
         
 
     def get(self, conn):
-        (block_number, tx_number) = self.backend.get()
+        #(block_number, tx_number) = self.backend.get()
+        (height, flags) = self.backend.get()
+        block_number = height[0]
         block_hash = []
         o = block_by_number(block_number)
         r = conn.do(o)

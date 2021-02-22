@@ -21,7 +21,7 @@ class SyncFilter:
     def add(self, fltr):
         if getattr(fltr, 'filter') == None:
             raise ValueError('filter object must implement have method filter')
-        logg.debug('added filter {}'.format(str(fltr)))
+        logg.debug('added filter "{}"'.format(str(fltr)))
 
         self.filters.append(fltr)
    
@@ -38,7 +38,7 @@ class SyncFilter:
             i += 1
             logg.debug('applying filter {}'.format(str(f)))
             f.filter(conn, block, tx, self.backend.db_session)
-            self.backend.set_filter()
+            self.backend.complete_filter(i)
         self.backend.disconnect()
 
 

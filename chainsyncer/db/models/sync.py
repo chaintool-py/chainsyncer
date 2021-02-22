@@ -51,6 +51,7 @@ class BlockchainSync(SessionBase):
         o = q.first()
 
         if o == None:
+            SessionBase.release_session(session)
             return None
 
         sync_id = o.id

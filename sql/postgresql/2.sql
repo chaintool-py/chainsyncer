@@ -1,5 +1,6 @@
+DROP TABLE IF EXISTS chain_sync_filter;
 CREATE TABLE IF NOT EXISTS chain_sync_filter (
-	id integer primary key autoincrement not null,
+	id serial primary key not null,
 	chain_sync_id integer not null,
 	flags bytea default null,
 	flags_start bytea default null,
