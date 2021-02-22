@@ -32,7 +32,7 @@ class BlockchainSyncFilter(SessionBase):
         if flags == None:
             flags = bytearray(0)
         else: # TODO: handle bytes too
-            bytecount = int((count - 1) / 8 + 1) + 1
+            bytecount = int((count - 1) / 8 + 1) 
             flags = flags.to_bytes(bytecount, 'big')
         self.flags_start = flags
         self.flags = flags
@@ -49,7 +49,6 @@ class BlockchainSyncFilter(SessionBase):
         old_byte_count = int((self.count - 1) / 8 + 1)
         new_byte_count = int((self.count) / 8 + 1)
 
-        logg.debug('old new {} {}'.format(old_byte_count, new_byte_count))
         if old_byte_count != new_byte_count:
             self.flags = bytearray(1) + self.flags
         self.count += 1
@@ -72,7 +71,7 @@ class BlockchainSyncFilter(SessionBase):
 
 
     def clear(self):
-        self.flags = 0
+        self.flags = bytearray(len(self.flags))
 
 
     def set(self, n):
@@ -80,10 +79,10 @@ class BlockchainSyncFilter(SessionBase):
             raise IndexError('bit flag out of range')
 
         b = 1 << (n % 8)
-        i = int((n - 1) / 8 + 1)
-        if self.flags[i] & b > 0:
-            SessionBase.release_session(session)
+        i = int(n / 8)
+        byte_idx = len(self.flags)-1-i
+        if (self.flags[byte_idx] & b) > 0:
             raise AttributeError('Filter bit already set')
         flags = bytearray(self.flags)
-        flags[i] |= b
+        flags[byte_idx] |= b
         self.flags = flags

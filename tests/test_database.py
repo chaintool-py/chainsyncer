@@ -76,7 +76,6 @@ class TestDatabase(TestBase):
         s.set(42, 13)
 
         s = SyncerBackend.first(self.chain_spec)
-        logg.debug('start {}'.format(s))
         self.assertEqual(s.get(), ((42,13), 0))
 
 
@@ -127,17 +126,8 @@ class TestDatabase(TestBase):
         SyncerBackend.live(self.chain_spec, 666)
         s[0].set(123, 2)
 
-        logg.debug('>>>>>')
         s = SyncerBackend.resume(self.chain_spec, 1024)
         SyncerBackend.live(self.chain_spec, 1024) 
-        s[0].connect()
-        logg.debug('syncer 1 {}'.format(s[0].db_object))
-        s[0].disconnect()
-        s[1].connect()
-        logg.debug('syncer 2 {}'.format(s[1].db_object))
-        s[1].disconnect()
-
-
 
         self.assertEqual(len(s), 2)
         self.assertEqual(s[0].target(), (666, 0))
@@ -145,6 +135,21 @@ class TestDatabase(TestBase):
         self.assertEqual(s[1].target(), (1024, 0))
         self.assertEqual(s[1].get(), ((666, 0), 0))
 
+
+    def test_backend_resume_filter(self):
+        s = SyncerBackend.live(self.chain_spec, 42)
+        s.register_filter('foo')
+        s.register_filter('bar')
+        s.register_filter('baz')
+
+        s.set(43, 13)
+        s.complete_filter(0)
+        s.complete_filter(2)
+
+        s = SyncerBackend.resume(self.chain_spec, 666)
+        (pair, flags) = s[0].get()
+
+        self.assertEqual(flags, 5)
 
 
 if __name__ == '__main__':

@@ -95,6 +95,7 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.set(block_height, tx_height)
+        self.db_object_filter.clear()
         (filter_state, count, digest)= self.db_object_filter.cursor()
         self.disconnect()
         return (pair, filter_state,)
@@ -204,8 +205,6 @@ class SyncerBackend:
             syncers.append(s)
 
         last_live_id = BlockchainSync.get_last(session=session)
-        logg.debug('last_live_id {}'.format(last_live_id))
-        logg.debug('higesst {} {}'.format(highest_unsynced_block, highest_unsynced_tx))
         if last_live_id != None:
 
             q = session.query(BlockchainSync)
@@ -277,6 +276,13 @@ class SyncerBackend:
         self.db_object_filter.add(name)
         self.db_session.add(self.db_object_filter)
         self.disconnect()
+
+
+    def complete_filter(self, n):
+        self.connect()
+        self.db_object_filter.set(n)
+        self.disconnect()
+        
 
 
 class MemBackend:
