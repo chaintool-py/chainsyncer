@@ -1,12 +1,20 @@
+# standard imports
+import logging
 import unittest
 import tempfile
 import os
 #import pysqlite
 
+# external imports
+from chainlib.chain import ChainSpec
+
+# local imports
 from chainsyncer.db import dsn_from_config
 from chainsyncer.db.models.base import SessionBase
 
 script_dir = os.path.realpath(os.path.dirname(__file__))
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class TestBase(unittest.TestCase):
@@ -23,7 +31,7 @@ class TestBase(unittest.TestCase):
         SessionBase.poolable = False
         SessionBase.transactional = False
         SessionBase.procedural = False
-        SessionBase.connect(dsn, debug=True)
+        SessionBase.connect(dsn, debug=False)
 
         f = open(os.path.join(script_dir, '..', 'sql', 'sqlite', '1.sql'), 'r')
         sql = f.read()
@@ -38,6 +46,8 @@ class TestBase(unittest.TestCase):
 
         conn = SessionBase.engine.connect()
         conn.execute(sql)
+
+        self.chain_spec = ChainSpec('evm', 'foo', 42, 'bar')
 
     def tearDown(self):
         SessionBase.disconnect()

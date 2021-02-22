@@ -41,19 +41,23 @@ class BlockchainSync(SessionBase):
         :type chain: str
         :param session: Session to use. If not specified, a separate session will be created for this method only.
         :type session: SqlAlchemy Session
-        :returns: True if sync record found
-        :rtype: bool
+        :returns: Database primary key id of sync record
+        :rtype: number|None
         """
-        local_session = False
-        if session == None:
-            session = SessionBase.create_session()
-            local_session = True
+        session = SessionBase.bind_session(session)
+
         q = session.query(BlockchainSync.id)
         q = q.filter(BlockchainSync.blockchain==chain)
         o = q.first()
-        if local_session:
-            session.close()
-        return o == None
+
+        if o == None:
+            return None
+
+        sync_id = o.id
+
+        SessionBase.release_session(session)
+
+        return sync_id
 
 
     @staticmethod
@@ -165,4 +169,4 @@ class BlockchainSync(SessionBase):
         self.tx_cursor = tx_start
         self.block_target = block_target
         self.date_created = datetime.datetime.utcnow()
-        self.date_modified = datetime.datetime.utcnow()
+        self.date_updated = datetime.datetime.utcnow()

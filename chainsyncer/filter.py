@@ -9,6 +9,7 @@ from .error import BackendError
 
 logg = logging.getLogger(__name__)
 
+
 class SyncFilter:
 
     def __init__(self, backend, safe=True):
@@ -32,10 +33,14 @@ class SyncFilter:
         except sqlalchemy.exc.TimeoutError as e:
             self.backend.disconnect()
             raise BackendError('database connection fail: {}'.format(e))
+        i = 0
         for f in self.filters:
+            i += 1
             logg.debug('applying filter {}'.format(str(f)))
             f.filter(conn, block, tx, self.backend.db_session)
+            self.backend.set_filter()
         self.backend.disconnect()
+
 
 class NoopFilter:
     

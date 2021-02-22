@@ -1,8 +1,18 @@
+# stanard imports
+import logging
+
 # third-party imports
 from sqlalchemy import Column, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import (
+        StaticPool,
+        QueuePool,
+        AssertionPool,
+        )
+
+logg = logging.getLogger()
 
 Model = declarative_base(name='Model')
 
@@ -21,7 +31,11 @@ class SessionBase(Model):
     transactional = True
     """Whether the database backend supports query transactions. Should be explicitly set by initialization code"""
     poolable = True
-    """Whether the database backend supports query transactions. Should be explicitly set by initialization code"""
+    """Whether the database backend supports connection pools. Should be explicitly set by initialization code"""
+    procedural = True
+    """Whether the database backend supports stored procedures"""
+    localsessions = {}
+    """Contains dictionary of sessions initiated by db model components"""
 
 
     @staticmethod
@@ -40,7 +54,7 @@ class SessionBase(Model):
 
 
     @staticmethod
-    def connect(dsn, debug=False):
+    def connect(dsn, pool_size=8, debug=False):
         """Create new database connection engine and connect to database backend.
 
         :param dsn: DSN string defining connection.
@@ -48,14 +62,28 @@ class SessionBase(Model):
         """
         e = None
         if SessionBase.poolable:
-            e = create_engine(
-                    dsn,
-                    max_overflow=50,
-                    pool_pre_ping=True,
-                    pool_size=20,
-                    pool_recycle=10,
-                    echo=debug,
-                )
+            poolclass = QueuePool
+            if pool_size > 1:
+                e = create_engine(
+                        dsn,
+                        max_overflow=pool_size*3,
+                        pool_pre_ping=True,
+                        pool_size=pool_size,
+                        pool_recycle=60,
+                        poolclass=poolclass,
+                        echo=debug,
+                    )
+            else:
+                if debug:
+                    poolclass = AssertionPool
+                else:
+                    poolclass = StaticPool
+
+                e = create_engine(
+                        dsn,
+                        poolclass=poolclass,
+                        echo=debug,
+                    )
         else:
             e = create_engine(
                     dsn,
@@ -71,3 +99,24 @@ class SessionBase(Model):
         """
         SessionBase.engine.dispose()
         SessionBase.engine = None
+
+
+    @staticmethod
+    def bind_session(session=None):
+        localsession = session
+        if localsession == None:
+            localsession = SessionBase.create_session()
+            localsession_key = str(id(localsession))
+            logg.debug('creating new session {}'.format(localsession_key))
+            SessionBase.localsessions[localsession_key] = localsession
+        return localsession
+
+
+    @staticmethod
+    def release_session(session=None):
+        session.flush()
+        session_key = str(id(session))
+        if SessionBase.localsessions.get(session_key) != None:
+            logg.debug('destroying session {}'.format(session_key))
+            session.commit()
+            session.close()

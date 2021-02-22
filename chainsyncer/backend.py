@@ -7,6 +7,7 @@ from chainlib.chain import ChainSpec
 
 # local imports
 from chainsyncer.db.models.sync import BlockchainSync
+from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.db.models.base import SessionBase
 
 logg = logging.getLogger()
@@ -23,6 +24,7 @@ class SyncerBackend:
     def __init__(self, chain_spec, object_id):
         self.db_session = None
         self.db_object = None
+        self.db_object_filter = None
         self.chain_spec = chain_spec
         self.object_id = object_id
         self.connect()
@@ -34,9 +36,17 @@ class SyncerBackend:
         """
         if self.db_session == None:
             self.db_session = SessionBase.create_session()
+
         q = self.db_session.query(BlockchainSync)
         q = q.filter(BlockchainSync.id==self.object_id)
         self.db_object = q.first()
+
+        if self.db_object != None:
+            qtwo = self.db_session.query(BlockchainSyncFilter)
+            qtwo = qtwo.join(BlockchainSync)
+            qtwo = qtwo.filter(BlockchainSync.id==self.db_object.id)
+            self.db_object_filter = qtwo.first()
+
         if self.db_object == None:
             raise ValueError('sync entry with id {} not found'.format(self.object_id))
 
@@ -44,6 +54,8 @@ class SyncerBackend:
     def disconnect(self):
         """Commits state of sync to backend.
         """
+        if self.db_object_filter != None:
+            self.db_session.add(self.db_object_filter)
         self.db_session.add(self.db_object)
         self.db_session.commit()
         self.db_session.close()
@@ -67,8 +79,9 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.cursor()
+        filter_state = self.db_object_filter.filter()
         self.disconnect()
-        return pair
+        return (pair, filter_state,)
    
 
     def set(self, block_height, tx_height):
@@ -82,8 +95,9 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.set(block_height, tx_height)
+        filter_state = self.db_object_filter.filter()
         self.disconnect()
-        return pair
+        return (pair, filter_state,)
 
 
     def start(self):
@@ -94,8 +108,9 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.start()
+        filter_state = self.db_object_filter.start()
         self.disconnect()
-        return pair
+        return (pair, filter_state,)
 
     
     def target(self):
@@ -106,12 +121,13 @@ class SyncerBackend:
         """
         self.connect()
         target = self.db_object.target()
+        filter_state = self.db_object_filter.target()
         self.disconnect()
-        return target
+        return (target, filter_target,)
 
 
     @staticmethod
-    def first(chain):
+    def first(chain_spec):
         """Returns the model object of the most recent syncer in backend.
 
         :param chain: Chain spec of chain that syncer is running for.
@@ -119,7 +135,12 @@ class SyncerBackend:
         :returns: Last syncer object 
         :rtype: cic_eth.db.models.BlockchainSync
         """
-        return BlockchainSync.first(chain)
+        #return BlockchainSync.first(str(chain_spec))
+        object_id = BlockchainSync.first(str(chain_spec))
+        if object_id == None:
+            return None
+        return SyncerBackend(chain_spec, object_id)
+
 
 
     @staticmethod
@@ -193,13 +214,28 @@ class SyncerBackend:
         """
         object_id = None
         session = SessionBase.create_session()
+
         o = BlockchainSync(str(chain_spec), block_height, 0, None)
         session.add(o)
-        session.commit()
+        session.flush()
         object_id = o.id
+
+        of = BlockchainSyncFilter(o)
+        session.add(of)
+        session.commit()
+
         session.close()
 
         return SyncerBackend(chain_spec, object_id)
+
+
+    def register_filter(self, name):
+        self.connect()
+        if self.db_object_filter == None:
+            self.db_object_filter = BlockchainSyncFilter(self.db_object)
+        self.db_object_filter.add(name)
+        self.db_session.add(self.db_object_filter)
+        self.disconnect()
 
 
 class MemBackend:
@@ -209,6 +245,7 @@ class MemBackend:
         self.chain_spec = chain_spec
         self.block_height = 0
         self.tx_height = 0
+        self.flags = 0
         self.db_session = None
 
 
