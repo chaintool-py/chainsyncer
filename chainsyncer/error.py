@@ -1,6 +1,9 @@
-class LoopDone(Exception):
+class SyncDone(Exception):
     """Exception raised when a syncing is complete.
     """
+    pass
+
+class NoBlockForYou(Exception):
     pass
 
 

@@ -126,6 +126,7 @@ class BlockchainSync(SessionBase):
         """
         self.block_cursor = block_height
         self.tx_cursor = tx_height
+        self.date_updated = datetime.datetime.utcnow()
         return (self.block_cursor, self.tx_cursor,)
 
 

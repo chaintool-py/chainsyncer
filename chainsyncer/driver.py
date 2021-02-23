@@ -13,12 +13,16 @@ from chainlib.eth.tx import receipt
 
 # local imports
 from chainsyncer.filter import SyncFilter
+from chainsyncer.error import (
+        SyncDone,
+        NoBlockForYou,
+    )
 
-logg = logging.getLogger()
+logg = logging.getLogger(__name__)
 
 
 def noop_callback(block_number, tx_index, s=None):
-    logg.debug('({},{}) {}'.format(block_number, tx_index, s))
+    logg.debug('noop callback ({},{}) {}'.format(block_number, tx_index, s))
 
 
 class Syncer:
@@ -83,8 +87,10 @@ class BlockPollSyncer(Syncer):
             while True and Syncer.running_global:
                 try:
                     block = self.get(conn)
-                except Exception as e:
-                    logg.debug('erro {}'.format(e))
+                except SyncDone as e:
+                    logg.info('sync done: {}'.format(e))
+                    return self.backend.get()
+                except NoBlockForYou as e:
                     break
                 last_block = block.number
                 self.process(conn, block)
@@ -96,10 +102,6 @@ class BlockPollSyncer(Syncer):
 
 
 class HeadSyncer(BlockPollSyncer):
-
-    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
-        super(HeadSyncer, self).__init__(backend, loop_callback, progress_callback)
-
 
     def process(self, conn, block):
         logg.debug('process block {}'.format(block))
@@ -120,13 +122,51 @@ class HeadSyncer(BlockPollSyncer):
         
 
     def get(self, conn):
-        #(block_number, tx_number) = self.backend.get()
         (height, flags) = self.backend.get()
         block_number = height[0]
         block_hash = []
         o = block_by_number(block_number)
         r = conn.do(o)
+        if r == None:
+            raise NoBlockForYou()
         b = Block(r)
         logg.debug('get {}'.format(b))
 
         return b
+
+
+    def __str__(self):
+        return '[headsyncer] {}'.format(str(self.backend))
+
+
+class HistorySyncer(HeadSyncer):
+
+    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
+        super(HeadSyncer, self).__init__(backend, loop_callback, progress_callback)
+        self.block_target = None
+        (block_number, flags) = self.backend.target()
+        if block_number == None:
+            raise AttributeError('backend has no future target. Use HeadSyner instead')
+        self.block_target = block_number
+
+
+    def get(self, conn):
+        (height, flags) = self.backend.get()
+        if self.block_target < height[0]:
+            raise SyncDone(self.block_target)
+        block_number = height[0]
+        block_hash = []
+        o = block_by_number(block_number)
+        r = conn.do(o)
+        if r == None:
+            raise NoBlockForYou()
+        b = Block(r)
+        logg.debug('get {}'.format(b))
+
+        return b
+
+
+    def __str__(self):
+        return '[historysyncer] {}'.format(str(self.backend))
+
+

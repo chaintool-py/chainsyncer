@@ -11,7 +11,7 @@ def r0_0_1_u():
     op.create_table(
             'chain_sync',
             sa.Column('id', sa.Integer, primary_key=True),
-            sa.Column('blockchain', sa.String, nullable=False, unique=True),
+            sa.Column('blockchain', sa.String, nullable=False),
             sa.Column('block_start', sa.Integer, nullable=False, default=0),
             sa.Column('tx_start', sa.Integer, nullable=False, default=0),
             sa.Column('block_cursor', sa.Integer, nullable=False, default=0),

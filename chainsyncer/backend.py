@@ -10,7 +10,7 @@ from chainsyncer.db.models.sync import BlockchainSync
 from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.db.models.base import SessionBase
 
-logg = logging.getLogger()
+logg = logging.getLogger(__name__)
 
 
 class SyncerBackend:
@@ -203,8 +203,8 @@ class SyncerBackend:
         session.close()
 
         for object_id in object_ids:
-            logg.debug('block syncer resume added previously unsynced sync entry id {}'.format(object_id))
             s = SyncerBackend(chain_spec, object_id)
+            logg.debug('resume unfinished {}'.format(s))
             syncers.append(s)
 
         session = SessionBase.create_session()
@@ -237,9 +237,10 @@ class SyncerBackend:
                 session.add(of)
                 session.commit()
 
-                syncers.append(SyncerBackend(chain_spec, object_id))
+                backend = SyncerBackend(chain_spec, object_id)
+                syncers.append(backend)
 
-                logg.debug('block syncer resume added new sync entry from previous run id {}, start{}:{} target {}'.format(object_id, block_resume, tx_resume, block_height))
+                logg.debug('last live session resume {}'.format(backend))
 
         session.close()
 
@@ -287,6 +288,11 @@ class SyncerBackend:
         self.connect()
         self.db_object_filter.set(n)
         self.disconnect()
+
+
+
+    def __str__(self):
+        return "syncerbackend chain {} start {} target {}".format(self.chain(), self.start(), self.target())
         
 
 
