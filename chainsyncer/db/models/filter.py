@@ -3,14 +3,14 @@ import logging
 import hashlib
 
 # external imports
-from sqlalchemy import Column, String, Integer, BLOB, ForeignKey
+from sqlalchemy import Column, String, Integer, LargeBinary, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 # local imports
 from .base import SessionBase
 from .sync import BlockchainSync
 
-zero_digest = bytearray(32)
+zero_digest = bytes(32).hex()
 logg = logging.getLogger(__name__)
 
 
@@ -19,9 +19,9 @@ class BlockchainSyncFilter(SessionBase):
     __tablename__ = 'chain_sync_filter'
 
     chain_sync_id = Column(Integer, ForeignKey('chain_sync.id'))
-    flags_start = Column(BLOB)
-    flags = Column(BLOB)
-    digest = Column(BLOB)
+    flags_start = Column(LargeBinary)
+    flags = Column(LargeBinary)
+    digest = Column(String(64))
     count = Column(Integer)
 
 
@@ -42,7 +42,7 @@ class BlockchainSyncFilter(SessionBase):
 
     def add(self, name):
         h = hashlib.new('sha256')
-        h.update(self.digest)
+        h.update(bytes.fromhex(self.digest))
         h.update(name.encode('utf-8'))
         z = h.digest()
 
@@ -52,7 +52,7 @@ class BlockchainSyncFilter(SessionBase):
         if old_byte_count != new_byte_count:
             self.flags = bytearray(1) + self.flags
         self.count += 1
-        self.digest = z
+        self.digest = z.hex()
 
 
     def start(self):
