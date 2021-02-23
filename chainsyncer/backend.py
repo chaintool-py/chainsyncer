@@ -199,10 +199,15 @@ class SyncerBackend:
             o = q.get(object_id)
             (highest_unsynced_block, highest_unsynced_index) = o.cursor()
         
-        for object_id in BlockchainSync.get_unsynced(session=session):
+        object_ids = BlockchainSync.get_unsynced(session=session)
+        session.close()
+
+        for object_id in object_ids:
             logg.debug('block syncer resume added previously unsynced sync entry id {}'.format(object_id))
             s = SyncerBackend(chain_spec, object_id)
             syncers.append(s)
+
+        session = SessionBase.create_session()
 
         last_live_id = BlockchainSync.get_last(session=session)
         if last_live_id != None:
