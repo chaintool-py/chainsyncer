@@ -25,10 +25,10 @@ def r0_0_1_u():
             'chain_sync_filter',
             sa.Column('id', sa.Integer, primary_key=True),
             sa.Column('chain_sync_id', sa.Integer, sa.ForeignKey('chain_sync.id'), nullable=True),
-            sa.Column('flags', sa.BLOB, nullable=True),
-            sa.Column('flags_start', sa.BLOB, nullable=True),
+            sa.Column('flags', sa.LargeBinary, nullable=True),
+            sa.Column('flags_start', sa.LargeBinary, nullable=True),
             sa.Column('count', sa.Integer, nullable=False, default=0),
-            sa.Column('digest', sa.BLOB, nullable=False),
+            sa.Column('digest', sa.String(64), nullable=False),
             )
 
 def r0_0_1_d():
