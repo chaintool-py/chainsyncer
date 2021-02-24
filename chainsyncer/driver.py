@@ -5,6 +5,7 @@ import time
 import signal
 
 # external imports
+import sqlalchemy
 from chainlib.eth.block import (
         block_by_number,
         Block,
@@ -92,6 +93,10 @@ class BlockPollSyncer(Syncer):
                     return self.backend.get()
                 except NoBlockForYou as e:
                     break
+# TODO: To properly handle this, ensure that previous request is rolled back
+#                except sqlalchemy.exc.OperationalError as e:
+#                    logg.error('database error: {}'.format(e))
+#                    break
                 last_block = block.number
                 self.process(conn, block)
                 start_tx = 0
@@ -116,6 +121,7 @@ class HeadSyncer(BlockPollSyncer):
                 self.backend.set(block.number, i)
                 self.filter.apply(conn, block, tx)
             except IndexError as e:
+                logg.debug('index error syncer rcpt get {}'.format(e))
                 self.backend.set(block.number + 1, 0)
                 break
             i += 1
@@ -130,7 +136,6 @@ class HeadSyncer(BlockPollSyncer):
         if r == None:
             raise NoBlockForYou()
         b = Block(r)
-        logg.debug('get {}'.format(b))
 
         return b
 
@@ -161,7 +166,6 @@ class HistorySyncer(HeadSyncer):
         if r == None:
             raise NoBlockForYou()
         b = Block(r)
-        logg.debug('get {}'.format(b))
 
         return b
 
