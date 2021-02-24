@@ -50,6 +50,8 @@ class SyncerBackend:
         if self.db_object == None:
             raise ValueError('sync entry with id {} not found'.format(self.object_id))
 
+        return self.db_session
+
 
     def disconnect(self):
         """Commits state of sync to backend.
@@ -285,9 +287,7 @@ class SyncerBackend:
 
 
     def complete_filter(self, n):
-        self.connect()
         self.db_object_filter.set(n)
-        self.disconnect()
 
 
 
