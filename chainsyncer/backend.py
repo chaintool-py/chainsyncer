@@ -322,4 +322,17 @@ class MemBackend:
 
 
     def get(self):
-        return (self.block_height, self.tx_height)
+        return ((self.block_height, self.tx_height), self.flags)
+
+
+    def register_filter(self, name):
+        pass
+
+
+    def complete_filter(self, n):
+        pass
+
+
+    def __str__(self):
+        return "syncer membackend chain {} cursor".format(self.get())
+        
