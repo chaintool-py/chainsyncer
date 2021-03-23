@@ -37,7 +37,7 @@ class SyncFilter:
         for f in self.filters:
             i += 1
             logg.debug('applying filter {}'.format(str(f)))
-            f.filter(conn, block, tx, self.backend.db_session)
+            f.filter(conn, block, tx, session)
             self.backend.complete_filter(i)
         if session != None:
             self.backend.disconnect()
