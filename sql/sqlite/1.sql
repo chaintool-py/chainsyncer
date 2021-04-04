@@ -1,13 +1,11 @@
 CREATE TABLE IF NOT EXISTS chain_sync (
-	id serial primary key not null,
+	id integer primary key autoincrement,
 	blockchain varchar not null,
-	block_start int not null default 0,
-	tx_start int not null default 0,
-	block_cursor int not null default 0,
-	tx_cursor int not null default 0,
-	flags bytea not null,
-	num_flags int not null,
-	block_target int default null,
+	block_start integer not null default 0,
+	tx_start integer not null default 0,
+	block_cursor integer not null default 0,
+	tx_cursor integer not null default 0,
+	block_target integer default null,
 	date_created timestamp not null,
 	date_updated timestamp default null
 );

@@ -7,9 +7,10 @@ from chainlib.chain import ChainSpec
 
 # local imports
 from chainsyncer.db.models.sync import BlockchainSync
+from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.db.models.base import SessionBase
 
-logg = logging.getLogger()
+logg = logging.getLogger(__name__)
 
 
 class SyncerBackend:
@@ -23,6 +24,7 @@ class SyncerBackend:
     def __init__(self, chain_spec, object_id):
         self.db_session = None
         self.db_object = None
+        self.db_object_filter = None
         self.chain_spec = chain_spec
         self.object_id = object_id
         self.connect()
@@ -34,16 +36,28 @@ class SyncerBackend:
         """
         if self.db_session == None:
             self.db_session = SessionBase.create_session()
+
         q = self.db_session.query(BlockchainSync)
         q = q.filter(BlockchainSync.id==self.object_id)
         self.db_object = q.first()
+
+        if self.db_object != None:
+            qtwo = self.db_session.query(BlockchainSyncFilter)
+            qtwo = qtwo.join(BlockchainSync)
+            qtwo = qtwo.filter(BlockchainSync.id==self.db_object.id)
+            self.db_object_filter = qtwo.first()
+
         if self.db_object == None:
             raise ValueError('sync entry with id {} not found'.format(self.object_id))
+
+        return self.db_session
 
 
     def disconnect(self):
         """Commits state of sync to backend.
         """
+        if self.db_object_filter != None:
+            self.db_session.add(self.db_object_filter)
         self.db_session.add(self.db_object)
         self.db_session.commit()
         self.db_session.close()
@@ -67,8 +81,9 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.cursor()
+        (filter_state, count, digest) = self.db_object_filter.cursor()
         self.disconnect()
-        return pair
+        return (pair, filter_state,)
    
 
     def set(self, block_height, tx_height):
@@ -82,8 +97,10 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.set(block_height, tx_height)
+        self.db_object_filter.clear()
+        (filter_state, count, digest)= self.db_object_filter.cursor()
         self.disconnect()
-        return pair
+        return (pair, filter_state,)
 
 
     def start(self):
@@ -94,8 +111,9 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.start()
+        (filter_state, count, digest) = self.db_object_filter.start()
         self.disconnect()
-        return pair
+        return (pair, filter_state,)
 
     
     def target(self):
@@ -106,12 +124,13 @@ class SyncerBackend:
         """
         self.connect()
         target = self.db_object.target()
+        (filter_target, count, digest) = self.db_object_filter.target()
         self.disconnect()
-        return target
+        return (target, filter_target,)
 
 
     @staticmethod
-    def first(chain):
+    def first(chain_spec):
         """Returns the model object of the most recent syncer in backend.
 
         :param chain: Chain spec of chain that syncer is running for.
@@ -119,11 +138,16 @@ class SyncerBackend:
         :returns: Last syncer object 
         :rtype: cic_eth.db.models.BlockchainSync
         """
-        return BlockchainSync.first(chain)
+        #return BlockchainSync.first(str(chain_spec))
+        object_id = BlockchainSync.first(str(chain_spec))
+        if object_id == None:
+            return None
+        return SyncerBackend(chain_spec, object_id)
+
 
 
     @staticmethod
-    def initial(chain, block_height):
+    def initial(chain_spec, target_block_height, start_block_height=0):
         """Creates a new syncer session and commit its initial state to backend.
 
         :param chain: Chain spec of chain that syncer is running for.
@@ -133,24 +157,31 @@ class SyncerBackend:
         :returns: New syncer object 
         :rtype: cic_eth.db.models.BlockchainSync
         """
+        if start_block_height >= target_block_height:
+            raise ValueError('start block height must be lower than target block height')
         object_id = None
         session = SessionBase.create_session()
-        o = BlockchainSync(chain, 0, 0, block_height)
+        o = BlockchainSync(str(chain_spec), start_block_height, 0, target_block_height)
         session.add(o)
         session.commit()
         object_id = o.id
+
+        of = BlockchainSyncFilter(o)
+        session.add(of)
+        session.commit()
+
         session.close()
 
-        return SyncerBackend(chain, object_id)
+        return SyncerBackend(chain_spec, object_id)
 
 
     @staticmethod
-    def resume(chain, block_height):
+    def resume(chain_spec, block_height):
         """Retrieves and returns all previously unfinished syncer sessions.
 
 
-        :param chain: Chain spec of chain that syncer is running for.
-        :type chain: cic_registry.chain.ChainSpec
+        :param chain_spec: Chain spec of chain that syncer is running for.
+        :type chain_spec: cic_registry.chain.ChainSpec
         :param block_height: Target block height
         :type block_height: number
         :returns: Syncer objects of unfinished syncs
@@ -162,18 +193,56 @@ class SyncerBackend:
 
         object_id = None
 
-        for object_id in BlockchainSync.get_unsynced(session=session):
-            logg.debug('block syncer resume added previously unsynced sync entry id {}'.format(object_id))
-            syncers.append(SyncerBackend(chain, object_id))
+        highest_unsynced_block = 0
+        highest_unsynced_tx = 0
+        object_id = BlockchainSync.get_last(session=session, live=False)
+        if object_id != None:
+            q = session.query(BlockchainSync)
+            o = q.get(object_id)
+            (highest_unsynced_block, highest_unsynced_index) = o.cursor()
+        
+        object_ids = BlockchainSync.get_unsynced(session=session)
+        session.close()
 
-        (block_resume, tx_resume) = BlockchainSync.get_last_live_height(block_height, session=session)
-        if block_height != block_resume:
-            o = BlockchainSync(chain, block_resume, tx_resume, block_height)
-            session.add(o)
-            session.commit()
-            object_id = o.id
-            syncers.append(SyncerBackend(chain, object_id))
-            logg.debug('block syncer resume added new sync entry from previous run id {}, start{}:{} target {}'.format(object_id, block_resume, tx_resume, block_height))
+        for object_id in object_ids:
+            s = SyncerBackend(chain_spec, object_id)
+            logg.debug('resume unfinished {}'.format(s))
+            syncers.append(s)
+
+        session = SessionBase.create_session()
+
+        last_live_id = BlockchainSync.get_last(session=session)
+        if last_live_id != None:
+
+            q = session.query(BlockchainSync)
+            o = q.get(last_live_id)
+
+            (block_resume, tx_resume) = o.cursor()
+            session.flush()
+
+            #if block_height != block_resume:
+            if highest_unsynced_block < block_resume: 
+
+                q = session.query(BlockchainSyncFilter)
+                q = q.filter(BlockchainSyncFilter.chain_sync_id==last_live_id)
+                of = q.first()
+                (flags, count, digest) = of.cursor()
+
+                session.flush()
+
+                o = BlockchainSync(str(chain_spec), block_resume, tx_resume, block_height)
+                session.add(o)
+                session.flush()
+                object_id = o.id
+
+                of = BlockchainSyncFilter(o, count, flags, digest)
+                session.add(of)
+                session.commit()
+
+                backend = SyncerBackend(chain_spec, object_id)
+                syncers.append(backend)
+
+                logg.debug('last live session resume {}'.format(backend))
 
         session.close()
 
@@ -193,13 +262,38 @@ class SyncerBackend:
         """
         object_id = None
         session = SessionBase.create_session()
+
         o = BlockchainSync(str(chain_spec), block_height, 0, None)
         session.add(o)
-        session.commit()
+        session.flush()
         object_id = o.id
+
+        of = BlockchainSyncFilter(o)
+        session.add(of)
+        session.commit()
+
         session.close()
 
         return SyncerBackend(chain_spec, object_id)
+
+
+    def register_filter(self, name):
+        self.connect()
+        if self.db_object_filter == None:
+            self.db_object_filter = BlockchainSyncFilter(self.db_object)
+        self.db_object_filter.add(name)
+        self.db_session.add(self.db_object_filter)
+        self.disconnect()
+
+
+    def complete_filter(self, n):
+        self.db_object_filter.set(n)
+
+
+
+    def __str__(self):
+        return "syncerbackend chain {} start {} target {}".format(self.chain(), self.start(), self.target())
+        
 
 
 class MemBackend:
@@ -209,6 +303,7 @@ class MemBackend:
         self.chain_spec = chain_spec
         self.block_height = 0
         self.tx_height = 0
+        self.flags = 0
         self.db_session = None
 
 
@@ -227,4 +322,17 @@ class MemBackend:
 
 
     def get(self):
-        return (self.block_height, self.tx_height)
+        return ((self.block_height, self.tx_height), self.flags)
+
+
+    def register_filter(self, name):
+        pass
+
+
+    def complete_filter(self, n):
+        pass
+
+
+    def __str__(self):
+        return "syncer membackend chain {} cursor".format(self.get())
+        
