@@ -41,47 +41,51 @@ class BlockchainSync(SessionBase):
         :type chain: str
         :param session: Session to use. If not specified, a separate session will be created for this method only.
         :type session: SqlAlchemy Session
-        :returns: True if sync record found
-        :rtype: bool
+        :returns: Database primary key id of sync record
+        :rtype: number|None
         """
-        local_session = False
-        if session == None:
-            session = SessionBase.create_session()
-            local_session = True
+        session = SessionBase.bind_session(session)
+
         q = session.query(BlockchainSync.id)
         q = q.filter(BlockchainSync.blockchain==chain)
         o = q.first()
-        if local_session:
-            session.close()
-        return o == None
+
+        if o == None:
+            SessionBase.release_session(session)
+            return None
+
+        sync_id = o.id
+
+        SessionBase.release_session(session)
+
+        return sync_id
 
 
     @staticmethod
-    def get_last_live_height(current, session=None):
+    def get_last(session=None, live=True):
         """Get the most recent open-ended ("live") syncer record.
 
-        :param current: Current block number
-        :type current: number
         :param session: Session to use. If not specified, a separate session will be created for this method only.
         :type session: SqlAlchemy Session
         :returns: Block and transaction number, respectively
         :rtype: tuple
         """
-        local_session = False
-        if session == None:
-            session = SessionBase.create_session()
-            local_session = True
-        q = session.query(BlockchainSync)
-        q = q.filter(BlockchainSync.block_target==None)
+        session = SessionBase.bind_session(session)
+
+        q = session.query(BlockchainSync.id)
+        if live:
+            q = q.filter(BlockchainSync.block_target==None)
+        else:
+            q = q.filter(BlockchainSync.block_target!=None)
         q = q.order_by(BlockchainSync.date_created.desc())
-        o = q.first()
-        if local_session:
-            session.close()
+        object_id = q.first()
 
-        if o == None:
-            return (0, 0)
+        SessionBase.release_session(session)
 
-        return (o.block_cursor, o.tx_cursor)
+        if object_id == None:
+            return None
+
+        return object_id[0]
 
 
     @staticmethod
@@ -122,6 +126,8 @@ class BlockchainSync(SessionBase):
         """
         self.block_cursor = block_height
         self.tx_cursor = tx_height
+        self.date_updated = datetime.datetime.utcnow()
+        return (self.block_cursor, self.tx_cursor,)
 
 
     def cursor(self):
@@ -165,4 +171,21 @@ class BlockchainSync(SessionBase):
         self.tx_cursor = tx_start
         self.block_target = block_target
         self.date_created = datetime.datetime.utcnow()
-        self.date_modified = datetime.datetime.utcnow()
+        self.date_updated = datetime.datetime.utcnow()
+
+
+    def __str__(self):
+        return """object_id: {}
+start: {}:{}
+cursor: {}:{}
+target: {}
+""".format(
+        self.id,
+        self.block_start,
+        self.tx_start,
+        self.block_cursor,
+        self.tx_cursor,
+        self.block_target,
+        )
+
+
