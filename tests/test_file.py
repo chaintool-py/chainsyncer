@@ -55,6 +55,28 @@ class TestFile(unittest.TestCase):
         self.assertEqual(pair[1], 0)
 
 
+    def test_resume(self):
+        for i in range(1, 10):
+            local_uu = SyncerFileBackend.initial(self.chain_spec, 666, start_block_height=i, base_dir=tmp_test_dir)
+
+        entries = SyncerFileBackend.resume(self.chain_spec, base_dir=tmp_test_dir)
+
+        self.assertEqual(len(entries), 10)
+
+        last = -1
+        for o in entries:
+            self.assertLess(last, o.block_height_offset)
+            last = o.block_height_offset
+
+
+    def test_first(self):
+        for i in range(1, 10):
+            local_uu = SyncerFileBackend.initial(self.chain_spec, 666, start_block_height=i, base_dir=tmp_test_dir)
+
+        first_entry = SyncerFileBackend.first(self.chain_spec, base_dir=tmp_test_dir)
+
+        self.assertEqual(first_entry.block_height_offset, 9)
+
 
 if __name__ == '__main__':
     unittest.main()

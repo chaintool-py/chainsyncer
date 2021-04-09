@@ -7,16 +7,22 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger().getChild(__name__)
 
+base_dir = '/var/lib'
 
-def data_dir_for(chain_spec, object_id, base_dir='/var/lib'):
+
+def chain_dir_for(chain_spec, base_dir=base_dir):
     base_data_dir = os.path.join(base_dir, 'chainsyncer')
-    chain_dir = str(chain_spec).replace(':', '/')
-    return os.path.join(base_data_dir, chain_dir, object_id)
+    return os.path.join(base_data_dir, str(chain_spec).replace(':', '/'))
+
+
+def data_dir_for(chain_spec, object_id, base_dir=base_dir):
+    chain_dir = chain_dir_for(chain_spec, base_dir=base_dir)
+    return os.path.join(chain_dir, object_id)
 
 
 class SyncerFileBackend:
 
-    def __init__(self, chain_spec, object_id=None, base_dir='/var/lib'):
+    def __init__(self, chain_spec, object_id=None, base_dir=base_dir):
         self.object_data_dir = data_dir_for(chain_spec, object_id, base_dir=base_dir)
 
         self.block_height_offset = 0
@@ -39,7 +45,7 @@ class SyncerFileBackend:
 
 
     @staticmethod
-    def create_object(chain_spec, object_id=None, base_dir='/var/lib'):
+    def create_object(chain_spec, object_id=None, base_dir=base_dir):
         if object_id == None:
             object_id = str(uuid.uuid4())
 
@@ -142,7 +148,7 @@ class SyncerFileBackend:
 
 
     @staticmethod
-    def initial(chain_spec, target_block_height, start_block_height=0, base_dir='/var/lib'):
+    def initial(chain_spec, target_block_height, start_block_height=0, base_dir=base_dir):
         if start_block_height >= target_block_height:
             raise ValueError('start block height must be lower than target block height')
        
@@ -161,3 +167,41 @@ class SyncerFileBackend:
 
     def start(self):
         return ((self.block_height_offset, self.tx_index_offset), None,)
+
+
+    @staticmethod
+    def __sorted_entries(chain_spec, base_dir=base_dir):
+        chain_dir = chain_dir_for(chain_spec, base_dir=base_dir)
+
+        entries = {}
+
+        for v in os.listdir(chain_dir):
+            d = os.path.realpath(os.path.join(chain_dir, v))
+            f = open(os.path.join(d, 'object_id'))
+            object_id = f.read()
+            f.close()
+
+            logg.debug('found syncer entry {} in {}'.format(object_id, d))
+
+            o = SyncerFileBackend(chain_spec, object_id, base_dir=base_dir)
+
+            entries[o.block_height_offset] = o
+
+        sorted_entries = []
+        for k in sorted(entries):
+            sorted_entries.append(entries[k])
+
+        return sorted_entries
+
+
+    @staticmethod
+    def resume(chain_spec, base_dir=base_dir):
+        return SyncerFileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+
+
+    @staticmethod
+    def first(chain_spec, base_dir=base_dir):
+        
+        entries = SyncerFileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+
+        return entries[len(entries)-1]
