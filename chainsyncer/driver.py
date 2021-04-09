@@ -22,8 +22,8 @@ from chainsyncer.error import (
 logg = logging.getLogger(__name__)
 
 
-def noop_callback(block_number, tx_index, s=None):
-    logg.debug('noop callback ({},{}) {}'.format(block_number, tx_index, s))
+def noop_callback(block, tx):
+    logg.debug('noop callback ({},{})'.format(block, tx))
 
 
 class Syncer:
@@ -32,13 +32,14 @@ class Syncer:
     yield_delay=0.005
     signal_set = False
 
-    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
+    def __init__(self, backend, pre_callback=None, block_callback=None, post_callback=None):
         self.cursor = None
         self.running = True
         self.backend = backend
         self.filter = SyncFilter(backend)
-        self.progress_callback = progress_callback
-        self.loop_callback = loop_callback
+        self.block_callback = block_callback
+        self.pre_callback = pre_callback
+        self.post_callback = post_callback
         if not Syncer.signal_set:
             signal.signal(signal.SIGINT, Syncer.__sig_terminate)
             signal.signal(signal.SIGTERM, Syncer.__sig_terminate)
@@ -73,18 +74,18 @@ class Syncer:
 
 class BlockPollSyncer(Syncer):
 
-    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
-        super(BlockPollSyncer, self).__init__(backend, loop_callback, progress_callback)
+    def __init__(self, backend, pre_callback=None, block_callback=None, post_callback=None):
+        super(BlockPollSyncer, self).__init__(backend, pre_callback, block_callback, post_callback)
 
 
     def loop(self, interval, conn):
-        (g, flags) = self.backend.get()
-        last_tx = g[1]
-        last_block = g[0]
-        self.progress_callback(last_block, last_tx, 'loop started')
+        #(g, flags) = self.backend.get()
+        #last_tx = g[1]
+        #last_block = g[0]
+        #self.progress_callback(last_block, last_tx, 'loop started')
         while self.running and Syncer.running_global:
-            if self.loop_callback != None:
-                self.loop_callback(last_block, last_tx)
+            if self.pre_callback != None:
+                self.pre_callback()
             while True and Syncer.running_global:
                 try:
                     block = self.get(conn)
@@ -97,12 +98,16 @@ class BlockPollSyncer(Syncer):
 #                except sqlalchemy.exc.OperationalError as e:
 #                    logg.error('database error: {}'.format(e))
 #                    break
-                last_block = block.number
+
+                if self.block_callback != None:
+                    self.block_callback(block, None)
+
+                last_block = block
                 self.process(conn, block)
                 start_tx = 0
-                self.progress_callback(last_block, last_tx, 'processed block {}'.format(self.backend.get()))
                 time.sleep(self.yield_delay)
-            self.progress_callback(last_block + 1, last_tx, 'loop ended')
+            if self.post_callback != None:
+                self.post_callback()
             time.sleep(interval)
 
 
@@ -117,7 +122,6 @@ class HeadSyncer(BlockPollSyncer):
                 tx = block.tx(i)
                 rcpt = conn.do(receipt(tx.hash))
                 tx.apply_receipt(rcpt)
-                self.progress_callback(block.number, i, 'processing {}'.format(repr(tx)))
                 self.backend.set(block.number, i)
                 self.filter.apply(conn, block, tx)
             except IndexError as e:
@@ -146,8 +150,8 @@ class HeadSyncer(BlockPollSyncer):
 
 class HistorySyncer(HeadSyncer):
 
-    def __init__(self, backend, loop_callback=noop_callback, progress_callback=noop_callback):
-        super(HeadSyncer, self).__init__(backend, loop_callback, progress_callback)
+    def __init__(self, backend, pre_callback=None, block_callback=None, post_callback=None):
+        super(HeadSyncer, self).__init__(backend, pre_callback, block_callback, post_callback)
         self.block_target = None
         (block_number, flags) = self.backend.target()
         if block_number == None:

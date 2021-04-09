@@ -298,12 +298,13 @@ class SyncerBackend:
 
 class MemBackend:
 
-    def __init__(self, chain_spec, object_id):
+    def __init__(self, chain_spec, object_id, target_block=None):
         self.object_id = object_id
         self.chain_spec = chain_spec
         self.block_height = 0
         self.tx_height = 0
         self.flags = 0
+        self.target_block = target_block
         self.db_session = None
 
 
@@ -323,6 +324,10 @@ class MemBackend:
 
     def get(self):
         return ((self.block_height, self.tx_height), self.flags)
+
+
+    def target(self):
+        return (self.target_block, self.flags)
 
 
     def register_filter(self, name):
