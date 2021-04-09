@@ -4,7 +4,6 @@ import uuid
 import shutil
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger().getChild(__name__)
 
 base_dir = '/var/lib'
@@ -39,9 +38,14 @@ class SyncerFileBackend:
         self.db_object_filter = None
         self.chain_spec = chain_spec
 
+        self.filter_count = 0
+        self.filter = b'\x00'
+        self.filter_names = []
+
         if self.object_id != None:
             self.connect()
             self.disconnect()
+
 
 
     @staticmethod
@@ -78,6 +82,16 @@ class SyncerFileBackend:
         f.write(b'\x00' * 16)
         f.close()
 
+        cursor_path = os.path.join(object_data_dir, 'filter')
+        f = open(cursor_path, 'wb')
+        f.write(b'\x00' * 9)
+        f.close()
+
+        filter_name_path = os.path.join(object_data_dir, 'filter_name')
+        f = open(filter_name_path, 'wb')
+        f.write(b'')
+        f.close()
+
         return object_id
 
 
@@ -103,6 +117,24 @@ class SyncerFileBackend:
         self.block_height_cursor = int.from_bytes(b[:8], byteorder='big')
         self.tx_index_cursor = int.from_bytes(b[8:], byteorder='big')
 
+        filter_path = os.path.join(self.object_data_dir, 'filter')
+        f = open(filter_path, 'rb')
+        b = f.read(8)
+        self.filter_count = int.from_bytes(b, byteorder='big')
+        filter_count_bytes = int((self.filter_count - 1) / 8 + 1)
+        if filter_count_bytes > 0:
+            self.filter = f.read(filter_count_bytes)
+        f.close()
+
+        filter_name_path = filter_path + '_name'
+        f = open(filter_name_path, 'r')
+        while True:
+            s = f.readline().rstrip()
+            if len(s) == 0:
+                break
+            self.filter_names.append(s)
+        f.close()
+
 
     def connect(self):
         object_path = os.path.join(self.object_data_dir, 'object_id') 
@@ -127,9 +159,17 @@ class SyncerFileBackend:
         return (self.block_height_cursor, self.tx_index_cursor)
 
 
-
     def set(self, block_height, tx_index):
-        return self.__set(block_height, tx_index, 'cursor')
+        self.__set(block_height, tx_index, 'cursor')
+
+        cursor_path = os.path.join(self.object_data_dir, 'filter')
+        f = open(cursor_path, 'r+b')
+        f.seek(8)
+        l = len(self.filter)
+        c = 0
+        while c < l:
+            c += f.write(self.filter)
+        f.close()
 
 
     def __set(self, block_height, tx_index, category):
@@ -205,3 +245,47 @@ class SyncerFileBackend:
         entries = SyncerFileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
 
         return entries[len(entries)-1]
+
+
+    # n is zero-index of bit field
+    def complete_filter(self, n, base_dir=base_dir):
+
+        if self.filter_count <= n:
+            raise IndexError('index {} out of ranger for filter size {}'.format(n, self.filter_count))
+
+        byte_pos = int(n / 8)
+        bit_pos = n % 8
+
+        byts = bytearray(self.filter)
+        b = (0x80 >> bit_pos)
+        b |= self.filter[byte_pos]
+        logg.debug('bbb {}'.format(type(b)))
+        byts[byte_pos] = b #b.to_bytes(1, byteorder='big')
+        self.filter = byts
+        
+        filter_path = os.path.join(self.object_data_dir, 'filter')
+        f = open(filter_path, 'r+b')
+        f.seek(8 + byte_pos)
+        f.write(self.filter)
+        f.close()
+
+
+    # overwrites disk if manual changed members in struct
+    def register_filter(self, name):
+        filter_path = os.path.join(self.object_data_dir, 'filter')
+        if (self.filter_count + 1) % 8 == 0:
+            self.filter += b'\x00'
+            f = open(filter_path, 'a+b')
+            f.write(b'\x00')
+            f.close()
+      
+        filter_name_path = filter_path + '_name'
+        f = open(filter_name_path, 'a')
+        f.write(name + '\n')
+        f.close()
+
+        self.filter_count += 1
+        f = open(filter_path, 'r+b')
+        b = self.filter_count.to_bytes(8, byteorder='big')
+        f.write(b)
+        f.close()
