@@ -8,7 +8,7 @@ from chainlib.chain import ChainSpec
 # local imports
 from chainsyncer.db.models.base import SessionBase
 from chainsyncer.db.models.filter import BlockchainSyncFilter
-from chainsyncer.backend import SyncerBackend
+from chainsyncer.backend.sql import SyncerBackend
 
 # testutil imports
 from tests.base import TestBase
@@ -66,6 +66,7 @@ class TestDatabase(TestBase):
         self.assertEqual(d, o.digest)
 
         session.close()
+
 
     def test_backend_retrieve(self):
         s = SyncerBackend.live(self.chain_spec, 42)

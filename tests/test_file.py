@@ -9,7 +9,7 @@ import shutil
 from chainlib.chain import ChainSpec
 
 # local imports
-from chainsyncer.backend_file import SyncerFileBackend
+from chainsyncer.backend.file import SyncerFileBackend
 
 logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger().getChild(__name__)

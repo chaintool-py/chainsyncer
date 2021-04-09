@@ -5,7 +5,7 @@ import unittest
 from chainlib.chain import ChainSpec
 
 # local imports
-from chainsyncer.backend import SyncerBackend
+from chainsyncer.backend.memory import MemBackend
 
 # testutil imports
 from tests.base import TestBase
@@ -15,7 +15,7 @@ class TestBasic(TestBase):
 
     def test_hello(self):
         chain_spec = ChainSpec('evm', 'bloxberg', 8996, 'foo')
-        backend = SyncerBackend(chain_spec, 'foo') 
+        backend = MemBackend(chain_spec, 'foo') 
 
 
 if __name__ == '__main__':
