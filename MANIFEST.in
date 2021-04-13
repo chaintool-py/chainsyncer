@@ -1,1 +1,1 @@
-include requirements.txt LICENSE.txt sql/**/*
+include *requirements.txt LICENSE.txt sql/**/*
