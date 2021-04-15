@@ -9,43 +9,16 @@ from hexathon import add_0x
 
 # local imports
 from chainsyncer.backend.memory import MemBackend
-from chainsyncer.driver import HeadSyncer
-from chainsyncer.error import NoBlockForYou
 
 # test imports
 from tests.base import TestBase
+from chainsyncer.unittest.base import (
+        MockBlock,
+        TestSyncer,
+        )
 
 logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger()
-
-
-class TestSyncer(HeadSyncer):
-
-
-    def __init__(self, backend, tx_counts=[]):
-        self.tx_counts = tx_counts
-        super(TestSyncer, self).__init__(backend)
-
-
-    def get(self, conn):
-        if self.backend.block_height == self.backend.target_block:
-            raise NoBlockForYou()
-        if self.backend.block_height > len(self.tx_counts):
-            return []
-
-        block_txs = []
-        for i in range(self.tx_counts[self.backend.block_height]):
-            block_txs.append(add_0x(os.urandom(32).hex()))
-      
-        return block_txs
-
-
-    def process(self, conn, block):
-        i = 0
-        for tx in block:
-            self.process_single(conn, block, tx, self.backend.block_height, i)
-            i += 1
-
 
 
 class NaughtyCountExceptionFilter:
@@ -100,7 +73,16 @@ class TestInterrupt(unittest.TestCase):
         for fltr in fltrs:
             self.syncer.add_filter(fltr)
 
+        try:
+            self.syncer.loop(0.1, None)
+        except RuntimeError:
+            pass
         self.syncer.loop(0.1, None)
+
+        for fltr in fltrs:
+            logg.debug('{} {}'.format(str(fltr), fltr.c))
+            self.assertEqual(fltr.c, 9)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -72,8 +72,8 @@ class Syncer:
         self.backend.register_filter(str(f))
 
 
-    def process_single(self, conn, block, tx, block_height, tx_index):
-        self.backend.set(block_height, tx_index)
+    def process_single(self, conn, block, tx):
+        self.backend.set(block.number, tx.index)
         self.filter.apply(conn, block, tx)
 
 
@@ -133,7 +133,7 @@ class HeadSyncer(BlockPollSyncer):
             rcpt = conn.do(receipt(tx.hash))
             tx.apply_receipt(rcpt)
     
-            self.process_single(conn, block, tx, block.number, i)
+            self.process_single(conn, block, tx)
                         
             i += 1
         
