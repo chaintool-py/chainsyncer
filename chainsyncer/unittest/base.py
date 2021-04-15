@@ -12,11 +12,22 @@ from chainsyncer.error import NoBlockForYou
 logg = logging.getLogger().getChild(__name__)
 
 
+
+class MockConn:
+
+    def do(self, o):
+        pass
+
+
 class MockTx:
 
     def __init__(self, index, tx_hash):
         self.hash = tx_hash
         self.index = index
+
+
+    def apply_receipt(self, rcpt):
+        self.rcpt = rcpt
 
 
 class MockBlock:
@@ -54,13 +65,3 @@ class TestSyncer(HistorySyncer):
                 block_txs.append(add_0x(os.urandom(32).hex()))
      
         return MockBlock(block_height, block_txs)
-
-
-    # TODO: implement mock conn instead, and use HeadSyncer.process
-    def process(self, conn, block):
-        i = 0
-        for tx in block.txs:
-            self.process_single(conn, block, block.tx(i))
-            self.backend.reset_filter()
-            i += 1
-        self.backend.set(block.number + 1, 0)

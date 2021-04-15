@@ -92,6 +92,9 @@ class BlockPollSyncer(Syncer):
             if self.pre_callback != None:
                 self.pre_callback()
             while True and Syncer.running_global:
+                if start_tx > 0:
+                    start_tx -= 1
+                    continue
                 try:
                     block = self.get(conn)
                 except SyncDone as e:
@@ -108,8 +111,6 @@ class BlockPollSyncer(Syncer):
                     self.block_callback(block, None)
 
                 last_block = block
-                if start_tx > 0:
-                    block.txs = block.txs[start_tx:]
                 self.process(conn, block)
                 start_tx = 0
                 time.sleep(self.yield_delay)
@@ -121,8 +122,8 @@ class BlockPollSyncer(Syncer):
 class HeadSyncer(BlockPollSyncer):
 
     def process(self, conn, block):
-        logg.debug('process block {}'.format(block))
         (pair, fltr) = self.backend.get()
+        logg.debug('process block {} (backend {}:{})'.format(block, pair, fltr))
         i = pair[1] # set tx index from previous
         tx = None
         while True:
@@ -137,6 +138,7 @@ class HeadSyncer(BlockPollSyncer):
             tx.apply_receipt(rcpt)
     
             self.process_single(conn, block, tx)
+            self.backend.reset_filter()
                         
             i += 1
         

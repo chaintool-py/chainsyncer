@@ -14,6 +14,7 @@ from chainsyncer.backend.sql import SyncerBackend
 from tests.base import TestBase
 from chainsyncer.unittest.base import (
         MockBlock,
+        MockConn,
         TestSyncer,
         )
 
@@ -63,27 +64,28 @@ class TestInterrupt(TestBase):
         self.filters =  [
             CountFilter('foo'),
             CountFilter('bar'),
-            NaughtyCountExceptionFilter('xyzzy', 3),
+            NaughtyCountExceptionFilter('xyzzy', croak_on=3),
             CountFilter('baz'),
             ]
         self.backend = None
+        self.conn = MockConn()
         
 
     def assert_filter_interrupt(self):
        
-        syncer = TestSyncer(self.backend, [4, 2, 3])
+        syncer = TestSyncer(self.backend, [4, 3, 2])
 
         for fltr in self.filters:
             syncer.add_filter(fltr)
 
         try:
-            syncer.loop(0.1, None)
+            syncer.loop(0.1, self.conn)
         except RuntimeError:
             logg.info('caught croak')
             pass
         (pair, fltr) = self.backend.get()
         self.assertGreater(fltr, 0)
-        syncer.loop(0.1, None)
+        syncer.loop(0.1, self.conn)
 
         for fltr in self.filters:
             logg.debug('{} {}'.format(str(fltr), fltr.c))
