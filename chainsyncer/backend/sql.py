@@ -14,7 +14,7 @@ from .base import Backend
 logg = logging.getLogger().getChild(__name__)
 
 
-class SyncerBackend(Backend):
+class SQLBackend(Backend):
     """Interface to block and transaction sync state.
 
     :param chain_spec: Chain spec for the chain that syncer is running for.
@@ -23,7 +23,7 @@ class SyncerBackend(Backend):
     :type object_id: number
     """
     def __init__(self, chain_spec, object_id):
-        super(SyncerBackend, self).__init__()
+        super(SQLBackend, self).__init__()
         self.db_session = None
         self.db_object = None
         self.db_object_filter = None
@@ -146,7 +146,7 @@ class SyncerBackend(Backend):
         object_id = BlockchainSync.first(str(chain_spec))
         if object_id == None:
             return None
-        return SyncerBackend(chain_spec, object_id)
+        return SQLBackend(chain_spec, object_id)
 
 
 
@@ -176,7 +176,7 @@ class SyncerBackend(Backend):
 
         session.close()
 
-        return SyncerBackend(chain_spec, object_id)
+        return SQLBackend(chain_spec, object_id)
 
 
     @staticmethod
@@ -209,7 +209,7 @@ class SyncerBackend(Backend):
         session.close()
 
         for object_id in object_ids:
-            s = SyncerBackend(chain_spec, object_id)
+            s = SQLBackend(chain_spec, object_id)
             logg.debug('resume unfinished {}'.format(s))
             syncers.append(s)
 
@@ -243,7 +243,7 @@ class SyncerBackend(Backend):
                 session.add(of)
                 session.commit()
 
-                backend = SyncerBackend(chain_spec, object_id)
+                backend = SQLBackend(chain_spec, object_id)
                 syncers.append(backend)
 
                 logg.debug('last live session resume {}'.format(backend))
@@ -278,7 +278,7 @@ class SyncerBackend(Backend):
 
         session.close()
 
-        return SyncerBackend(chain_spec, object_id)
+        return SQLBackend(chain_spec, object_id)
 
 
     def register_filter(self, name):

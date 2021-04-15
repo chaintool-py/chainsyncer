@@ -9,7 +9,7 @@ from chainlib.chain import ChainSpec
 
 # local imports
 from chainsyncer.backend.memory import MemBackend
-from chainsyncer.backend.sql import SyncerBackend
+from chainsyncer.backend.sql import SQLBackend
 from chainsyncer.backend.file import (
         FileBackend,
         data_dir_for,
@@ -128,7 +128,7 @@ class TestInterrupt(TestBase):
 
     def test_filter_interrupt_sql(self):
         for vector in self.vectors:
-            self.backend = SyncerBackend.initial(self.chain_spec, len(vector))
+            self.backend = SQLBackend.initial(self.chain_spec, len(vector))
             self.assert_filter_interrupt(vector)
 
 
