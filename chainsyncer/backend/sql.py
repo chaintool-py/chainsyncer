@@ -2,7 +2,7 @@
 import logging
 import uuid
 
-# third-party imports
+# imports
 from chainlib.chain import ChainSpec
 
 # local imports
@@ -56,6 +56,9 @@ class SyncerBackend:
     def disconnect(self):
         """Commits state of sync to backend.
         """
+        if self.db_session == None:
+            return
+
         if self.db_object_filter != None:
             self.db_session.add(self.db_object_filter)
         self.db_session.add(self.db_object)
@@ -97,7 +100,6 @@ class SyncerBackend:
         """
         self.connect()
         pair = self.db_object.set(block_height, tx_height)
-        self.db_object_filter.clear()
         (filter_state, count, digest)= self.db_object_filter.cursor()
         self.disconnect()
         return (pair, filter_state,)
@@ -291,6 +293,12 @@ class SyncerBackend:
         self.db_object_filter.set(n)
         self.db_session.add(self.db_object_filter)
         self.db_session.commit()
+        self.disconnect()
+
+
+    def reset_filter(self):
+        self.connect()
+        self.db_object_filter.clear()
         self.disconnect()
 
 

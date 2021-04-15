@@ -8,6 +8,7 @@ from chainlib.chain import ChainSpec
 
 # local imports
 from chainsyncer.backend.memory import MemBackend
+from chainsyncer.backend.sql import SyncerBackend
 
 # test imports
 from tests.base import TestBase
@@ -54,35 +55,49 @@ class CountFilter:
         return '{} {}'.format(self.__class__.__name__, self.name)
 
 
-class TestInterrupt(unittest.TestCase):
+
+class TestInterrupt(TestBase):
 
     def setUp(self):
-        self.chain_spec = ChainSpec('foo', 'bar', 42, 'baz')
-        self.backend = MemBackend(self.chain_spec, None, target_block=4)
-        self.syncer = TestSyncer(self.backend, [4, 2, 3])
-
-    def test_filter_interrupt(self):
-       
-        fltrs = [
+        super(TestInterrupt, self).setUp()
+        self.filters =  [
             CountFilter('foo'),
             CountFilter('bar'),
             NaughtyCountExceptionFilter('xyzzy', 3),
             CountFilter('baz'),
-                ]
+            ]
+        self.backend = None
+        
 
-        for fltr in fltrs:
-            self.syncer.add_filter(fltr)
+    def assert_filter_interrupt(self):
+       
+        syncer = TestSyncer(self.backend, [4, 2, 3])
+
+        for fltr in self.filters:
+            syncer.add_filter(fltr)
 
         try:
-            self.syncer.loop(0.1, None)
+            syncer.loop(0.1, None)
         except RuntimeError:
             logg.info('caught croak')
             pass
-        self.syncer.loop(0.1, None)
+        (pair, fltr) = self.backend.get()
+        self.assertGreater(fltr, 0)
+        syncer.loop(0.1, None)
 
-        for fltr in fltrs:
+        for fltr in self.filters:
             logg.debug('{} {}'.format(str(fltr), fltr.c))
-            #self.assertEqual(fltr.c, 11)
+            self.assertEqual(fltr.c, 9)
+
+
+    def test_filter_interrupt_memory(self):
+        self.backend = MemBackend(self.chain_spec, None, target_block=4)
+        self.assert_filter_interrupt()
+
+
+    def test_filter_interrupt_sql(self):
+        self.backend = SyncerBackend.initial(self.chain_spec, 4)
+        self.assert_filter_interrupt()
 
 
 if __name__ == '__main__':

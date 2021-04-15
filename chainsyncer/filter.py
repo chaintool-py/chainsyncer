@@ -36,16 +36,15 @@ class SyncFilter:
         i = 0
         (pair, flags) = self.backend.get()
         for f in self.filters:
+            if flags & (1 << i) == 0:
+                logg.debug('applying filter {} {}'.format(str(f), flags))
+                f.filter(conn, block, tx, session)
+                self.backend.complete_filter(i)
+            else:
+                logg.debug('skipping previously applied filter {} {}'.format(str(f), flags))
             i += 1
-            if flags & (1 << (i - 1)) > 0:
-                logg.debug('skipping previously applied filter {}'.format(str(f)))
-                continue
-            logg.debug('applying filter {}'.format(str(f)))
-            f.filter(conn, block, tx, session)
-            self.backend.complete_filter(i)
-        if session != None:
-            self.backend.disconnect()
 
+        self.backend.disconnect()
 
 class NoopFilter:
     

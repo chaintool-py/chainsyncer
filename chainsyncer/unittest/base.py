@@ -39,19 +39,21 @@ class TestSyncer(HistorySyncer):
 
 
     def get(self, conn):
-        if self.backend.block_height == self.backend.target_block:
+        (pair, fltr) = self.backend.get()
+        (target_block, fltr) = self.backend.target()
+        block_height = pair[0]
+
+        if block_height == target_block:
             self.running = False
             raise NoBlockForYou()
             return []
 
         block_txs = []
-        if self.backend.block_height < len(self.tx_counts):
-            for i in range(self.tx_counts[self.backend.block_height]):
+        if block_height < len(self.tx_counts):
+            for i in range(self.tx_counts[block_height]):
                 block_txs.append(add_0x(os.urandom(32).hex()))
      
-        logg.debug('get tx height {}'.format(self.backend.tx_height))
-        
-        return MockBlock(self.backend.block_height, block_txs)
+        return MockBlock(block_height, block_txs)
 
 
     # TODO: implement mock conn instead, and use HeadSyncer.process
@@ -61,4 +63,4 @@ class TestSyncer(HistorySyncer):
             self.process_single(conn, block, block.tx(i))
             self.backend.reset_filter()
             i += 1
-        self.backend.set(self.backend.block_height + 1, 0)
+        self.backend.set(block.number + 1, 0)

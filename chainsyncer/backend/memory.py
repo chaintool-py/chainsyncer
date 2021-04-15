@@ -44,9 +44,9 @@ class MemBackend:
 
 
     def complete_filter(self, n):
-        v = 1 << (n-1)
+        v = 1 << n
         self.flags |= v
-        logg.debug('set filter {} {}'.format(self.filter_names[n-1], v))
+        logg.debug('set filter {} {}'.format(self.filter_names[n], v))
 
 
     def reset_filter(self):
