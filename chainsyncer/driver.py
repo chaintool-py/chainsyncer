@@ -19,7 +19,7 @@ from chainsyncer.error import (
         NoBlockForYou,
     )
 
-logg = logging.getLogger(__name__)
+logg = logging.getLogger().getChild(__name__)
 
 
 def noop_callback(block, tx):
@@ -30,6 +30,7 @@ class Syncer:
 
     running_global = True
     yield_delay=0.005
+    signal_request = [signal.SIGINT, signal.SIGTERM]
     signal_set = False
 
     def __init__(self, backend, pre_callback=None, block_callback=None, post_callback=None):
@@ -41,8 +42,8 @@ class Syncer:
         self.pre_callback = pre_callback
         self.post_callback = post_callback
         if not Syncer.signal_set:
-            signal.signal(signal.SIGINT, Syncer.__sig_terminate)
-            signal.signal(signal.SIGTERM, Syncer.__sig_terminate)
+            for sig in Syncer.signal_request:
+                signal.signal(sig, Syncer.__sig_terminate)
             Syncer.signal_set = True
 
 
@@ -76,7 +77,7 @@ class Syncer:
         self.backend.set(block.number, tx.index)
         self.filter.apply(conn, block, tx)
 
-
+    
 class BlockPollSyncer(Syncer):
 
     def __init__(self, backend, pre_callback=None, block_callback=None, post_callback=None):
@@ -84,10 +85,9 @@ class BlockPollSyncer(Syncer):
 
 
     def loop(self, interval, conn):
-        #(g, flags) = self.backend.get()
-        #last_tx = g[1]
-        #last_block = g[0]
-        #self.progress_callback(last_block, last_tx, 'loop started')
+        (pair, fltr) = self.backend.get()
+        start_tx = pair[1]
+
         while self.running and Syncer.running_global:
             if self.pre_callback != None:
                 self.pre_callback()
@@ -108,6 +108,8 @@ class BlockPollSyncer(Syncer):
                     self.block_callback(block, None)
 
                 last_block = block
+                if start_tx > 0:
+                    block.txs = block.txs[start_tx:]
                 self.process(conn, block)
                 start_tx = 0
                 time.sleep(self.yield_delay)
@@ -120,7 +122,8 @@ class HeadSyncer(BlockPollSyncer):
 
     def process(self, conn, block):
         logg.debug('process block {}'.format(block))
-        i = 0
+        (pair, fltr) = self.backend.get()
+        i = pair[1] # set tx index from previous
         tx = None
         while True:
             try:
@@ -147,6 +150,7 @@ class HeadSyncer(BlockPollSyncer):
         if r == None:
             raise NoBlockForYou()
         b = Block(r)
+        b.txs = b.txs[height[1]:]
 
         return b
 

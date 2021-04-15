@@ -15,7 +15,6 @@ class MemBackend:
         self.target_block = target_block
         self.db_session = None
         self.filter_names = []
-        self.filter_values = []
 
 
     def connect(self):
@@ -30,8 +29,6 @@ class MemBackend:
         logg.debug('stateless backend received {} {}'.format(block_height, tx_height))
         self.block_height = block_height
         self.tx_height = tx_height
-        for i in range(len(self.filter_values)):
-            self.filter_values[i] = False
 
 
     def get(self):
@@ -44,12 +41,17 @@ class MemBackend:
 
     def register_filter(self, name):
         self.filter_names.append(name)
-        self.filter_values.append(False)
 
 
     def complete_filter(self, n):
-        self.filter_values[n-1] = True
-        logg.debug('set filter {}'.format(self.filter_names[n-1]))
+        v = 1 << (n-1)
+        self.flags |= v
+        logg.debug('set filter {} {}'.format(self.filter_names[n-1], v))
+
+
+    def reset_filter(self):
+        logg.debug('reset filters')
+        self.flags = 0
 
 
     def __str__(self):

@@ -156,7 +156,7 @@ class SyncerFileBackend:
 
 
     def get(self):
-        return (self.block_height_cursor, self.tx_index_cursor)
+        return ((self.block_height_cursor, self.tx_index_cursor), self.filter)
 
 
     def set(self, block_height, tx_index):
