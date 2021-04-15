@@ -9,7 +9,7 @@ import shutil
 from chainlib.chain import ChainSpec
 
 # local imports
-from chainsyncer.backend.file import SyncerFileBackend
+from chainsyncer.backend.file import FileBackend
 
 logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger().getChild(__name__)
@@ -24,10 +24,10 @@ class TestFile(unittest.TestCase):
 
     def setUp(self):
         self.chain_spec = ChainSpec('foo', 'bar', 42, 'baz')
-        self.uu = SyncerFileBackend.create_object(self.chain_spec, None, base_dir=tmp_test_dir)
+        self.uu = FileBackend.create_object(self.chain_spec, None, base_dir=tmp_test_dir)
         logg.debug('made uu {} for {}'.format(self.uu, self.chain_spec))
 
-        self.o = SyncerFileBackend(self.chain_spec, self.uu, base_dir=tmp_test_dir)
+        self.o = FileBackend(self.chain_spec, self.uu, base_dir=tmp_test_dir)
 
 
     def tearDown(self):
@@ -39,7 +39,7 @@ class TestFile(unittest.TestCase):
     def test_set(self):
         self.o.set(42, 13)
 
-        o = SyncerFileBackend(self.chain_spec, self.o.object_id, base_dir=tmp_test_dir)
+        o = FileBackend(self.chain_spec, self.o.object_id, base_dir=tmp_test_dir)
 
         state = o.get()
 
@@ -49,9 +49,9 @@ class TestFile(unittest.TestCase):
 
     @unittest.skip('foo')
     def test_initial(self):
-        local_uu = SyncerFileBackend.initial(self.chain_spec, 1337, start_block_height=666, base_dir=tmp_test_dir)
+        local_uu = FileBackend.initial(self.chain_spec, 1337, start_block_height=666, base_dir=tmp_test_dir)
 
-        o = SyncerFileBackend(self.chain_spec, local_uu, base_dir=tmp_test_dir)
+        o = FileBackend(self.chain_spec, local_uu, base_dir=tmp_test_dir)
 
         (pair, filter_stats) = o.target()
         self.assertEqual(pair[0], 1337)
@@ -65,9 +65,9 @@ class TestFile(unittest.TestCase):
     @unittest.skip('foo')
     def test_resume(self):
         for i in range(1, 10):
-            local_uu = SyncerFileBackend.initial(self.chain_spec, 666, start_block_height=i, base_dir=tmp_test_dir)
+            local_uu = FileBackend.initial(self.chain_spec, 666, start_block_height=i, base_dir=tmp_test_dir)
 
-        entries = SyncerFileBackend.resume(self.chain_spec, base_dir=tmp_test_dir)
+        entries = FileBackend.resume(self.chain_spec, base_dir=tmp_test_dir)
 
         self.assertEqual(len(entries), 10)
 
@@ -80,9 +80,9 @@ class TestFile(unittest.TestCase):
     @unittest.skip('foo')
     def test_first(self):
         for i in range(1, 10):
-            local_uu = SyncerFileBackend.initial(self.chain_spec, 666, start_block_height=i, base_dir=tmp_test_dir)
+            local_uu = FileBackend.initial(self.chain_spec, 666, start_block_height=i, base_dir=tmp_test_dir)
 
-        first_entry = SyncerFileBackend.first(self.chain_spec, base_dir=tmp_test_dir)
+        first_entry = FileBackend.first(self.chain_spec, base_dir=tmp_test_dir)
 
         self.assertEqual(first_entry.block_height_offset, 9)
 
@@ -94,7 +94,7 @@ class TestFile(unittest.TestCase):
         self.o.register_filter('foo')
         self.o.register_filter('bar')
 
-        o = SyncerFileBackend(self.chain_spec, self.uu, base_dir=tmp_test_dir)
+        o = FileBackend(self.chain_spec, self.uu, base_dir=tmp_test_dir)
 
         self.assertEqual(o.filter_count, 2)
         self.assertEqual(o.filter_names, ['foo', 'bar'])
@@ -106,7 +106,7 @@ class TestFile(unittest.TestCase):
         self.o.complete_filter(0)
         self.assertEqual(self.o.filter, b'\xc0')
 
-        o = SyncerFileBackend(self.chain_spec, self.uu, base_dir=tmp_test_dir)
+        o = FileBackend(self.chain_spec, self.uu, base_dir=tmp_test_dir)
         self.assertEqual(o.filter, b'\xc0')
 
 
