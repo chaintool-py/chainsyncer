@@ -156,20 +156,23 @@ class SyncerFileBackend:
 
 
     def get(self):
-        return ((self.block_height_cursor, self.tx_index_cursor), self.filter)
+        logg.debug('filter {}'.format(self.filter.hex()))
+        return ((self.block_height_cursor, self.tx_index_cursor), int.from_bytes(self.filter, 'little'))
 
 
     def set(self, block_height, tx_index):
         self.__set(block_height, tx_index, 'cursor')
 
-        cursor_path = os.path.join(self.object_data_dir, 'filter')
-        f = open(cursor_path, 'r+b')
-        f.seek(8)
-        l = len(self.filter)
-        c = 0
-        while c < l:
-            c += f.write(self.filter)
-        f.close()
+#        cursor_path = os.path.join(self.object_data_dir, 'filter')
+#        f = open(cursor_path, 'r+b')
+#        f.seek(8)
+#        l = len(self.filter)
+#        c = 0
+#        while c < l:
+#            c += f.write(self.filter[c:])
+#        f.close()
+
+        return ((self.block_height_cursor, self.tx_index_cursor), int.from_bytes(self.filter, 'little'))
 
 
     def __set(self, block_height, tx_index, category):
@@ -198,15 +201,16 @@ class SyncerFileBackend:
         o.__set(target_block_height, 0, 'target')
         o.__set(start_block_height, 0, 'offset')
 
-        return uu
+        #return uu
+        return o
 
 
     def target(self):
-        return ((self.block_height_target, self.tx_index_target), None,)
+        return (self.block_height_target, 0,)
 
 
     def start(self):
-        return ((self.block_height_offset, self.tx_index_offset), None,)
+        return ((self.block_height_offset, self.tx_index_offset), 0,)
 
 
     @staticmethod
@@ -288,4 +292,16 @@ class SyncerFileBackend:
         f = open(filter_path, 'r+b')
         b = self.filter_count.to_bytes(8, byteorder='big')
         f.write(b)
+        f.close()
+
+
+    def reset_filter(self):
+        self.filter = b'\x00' * len(self.filter)
+        cursor_path = os.path.join(self.object_data_dir, 'filter')
+        f = open(cursor_path, 'r+b')
+        f.seek(8)
+        l = len(self.filter)
+        c = 0
+        while c < l:
+            c += f.write(self.filter[c:])
         f.close()

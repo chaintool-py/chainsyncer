@@ -170,6 +170,7 @@ class HistorySyncer(HeadSyncer):
         if block_number == None:
             raise AttributeError('backend has no future target. Use HeadSyner instead')
         self.block_target = block_number
+        logg.debug('block target {}'.format(self.block_target))
 
 
     def get(self, conn):

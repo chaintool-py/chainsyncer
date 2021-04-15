@@ -2,6 +2,7 @@
 import logging
 import unittest
 import os
+import tempfile
 
 # external imports
 from chainlib.chain import ChainSpec
@@ -9,6 +10,10 @@ from chainlib.chain import ChainSpec
 # local imports
 from chainsyncer.backend.memory import MemBackend
 from chainsyncer.backend.sql import SyncerBackend
+from chainsyncer.backend.file import (
+        SyncerFileBackend,
+        data_dir_for,
+    )
 
 # test imports
 from tests.base import TestBase
@@ -61,21 +66,35 @@ class TestInterrupt(TestBase):
 
     def setUp(self):
         super(TestInterrupt, self).setUp()
-        self.filters =  [
+        
+        self.backend = None
+        self.conn = MockConn()
+        self.vectors = [
+                [4, 3, 2],
+                [6, 4, 2],
+                [6, 5, 2],
+                [6, 4, 3],
+                ]
+        
+
+    def assert_filter_interrupt(self, vector):
+    
+        logg.debug('running vector {} {}'.format(str(self.backend), vector))
+
+        z = 0
+        for v in vector:
+            z += v
+
+        syncer = TestSyncer(self.backend, vector)
+
+        filters =  [
             CountFilter('foo'),
             CountFilter('bar'),
             NaughtyCountExceptionFilter('xyzzy', croak_on=3),
             CountFilter('baz'),
             ]
-        self.backend = None
-        self.conn = MockConn()
-        
 
-    def assert_filter_interrupt(self):
-       
-        syncer = TestSyncer(self.backend, [4, 3, 2])
-
-        for fltr in self.filters:
+        for fltr in filters:
             syncer.add_filter(fltr)
 
         try:
@@ -87,19 +106,33 @@ class TestInterrupt(TestBase):
         self.assertGreater(fltr, 0)
         syncer.loop(0.1, self.conn)
 
-        for fltr in self.filters:
+        for fltr in filters:
             logg.debug('{} {}'.format(str(fltr), fltr.c))
-            self.assertEqual(fltr.c, 9)
+            self.assertEqual(fltr.c, z)
 
 
+    @unittest.skip('foo')
     def test_filter_interrupt_memory(self):
-        self.backend = MemBackend(self.chain_spec, None, target_block=4)
-        self.assert_filter_interrupt()
+        for vector in self.vectors:
+            self.backend = MemBackend(self.chain_spec, None, target_block=len(vector))
+            self.assert_filter_interrupt(vector)
 
 
+    def test_filter_interrpt_file(self):
+        for vector in self.vectors:
+            d = tempfile.mkdtemp()
+            #os.makedirs(data_dir_for(self.chain_spec, 'foo', d))
+            self.backend = SyncerFileBackend.initial(self.chain_spec, len(vector), base_dir=d) #'foo', base_dir=d)
+            self.assert_filter_interrupt(vector)
+
+
+    @unittest.skip('foo')
     def test_filter_interrupt_sql(self):
-        self.backend = SyncerBackend.initial(self.chain_spec, 4)
-        self.assert_filter_interrupt()
+        for vector in self.vectors:
+            self.backend = SyncerBackend.initial(self.chain_spec, len(vector))
+            self.assert_filter_interrupt(vector)
+
+
 
 
 if __name__ == '__main__':
