@@ -36,7 +36,8 @@ class SyncFilter:
         i = 0
         (pair, flags) = self.backend.get()
         for f in self.filters:
-            if flags & (1 << i) == 0:
+            if not self.backend.check_filter(i, flags):
+            #if flags & (1 << i) == 0:
                 logg.debug('applying filter {} {}'.format(str(f), flags))
                 f.filter(conn, block, tx, session)
                 self.backend.complete_filter(i)

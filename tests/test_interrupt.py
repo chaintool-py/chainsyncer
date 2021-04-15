@@ -11,7 +11,7 @@ from chainlib.chain import ChainSpec
 from chainsyncer.backend.memory import MemBackend
 from chainsyncer.backend.sql import SyncerBackend
 from chainsyncer.backend.file import (
-        SyncerFileBackend,
+        FileBackend,
         data_dir_for,
     )
 
@@ -111,22 +111,21 @@ class TestInterrupt(TestBase):
             self.assertEqual(fltr.c, z)
 
 
-    @unittest.skip('foo')
     def test_filter_interrupt_memory(self):
         for vector in self.vectors:
             self.backend = MemBackend(self.chain_spec, None, target_block=len(vector))
             self.assert_filter_interrupt(vector)
 
 
-    def test_filter_interrpt_file(self):
-        for vector in self.vectors:
+    def test_filter_interrupt_file(self):
+        #for vector in self.vectors:
+            vector = self.vectors.pop()
             d = tempfile.mkdtemp()
             #os.makedirs(data_dir_for(self.chain_spec, 'foo', d))
-            self.backend = SyncerFileBackend.initial(self.chain_spec, len(vector), base_dir=d) #'foo', base_dir=d)
+            self.backend = FileBackend.initial(self.chain_spec, len(vector), base_dir=d) #'foo', base_dir=d)
             self.assert_filter_interrupt(vector)
 
 
-    @unittest.skip('foo')
     def test_filter_interrupt_sql(self):
         for vector in self.vectors:
             self.backend = SyncerBackend.initial(self.chain_spec, len(vector))

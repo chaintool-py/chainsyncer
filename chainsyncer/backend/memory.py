@@ -1,12 +1,16 @@
 # standard imports
 import logging
 
+# local imports
+from .base import Backend
+
 logg = logging.getLogger().getChild(__name__)
 
 
-class MemBackend:
+class MemBackend(Backend):
 
     def __init__(self, chain_spec, object_id, target_block=None):
+        super(MemBackend, self).__init__()
         self.object_id = object_id
         self.chain_spec = chain_spec
         self.block_height = 0
@@ -41,6 +45,7 @@ class MemBackend:
 
     def register_filter(self, name):
         self.filter_names.append(name)
+        self.filter_count += 1
 
 
     def complete_filter(self, n):
@@ -52,6 +57,10 @@ class MemBackend:
     def reset_filter(self):
         logg.debug('reset filters')
         self.flags = 0
+
+    
+    def get_flags(self):
+        return flags
 
 
     def __str__(self):

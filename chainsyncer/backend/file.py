@@ -4,6 +4,9 @@ import uuid
 import shutil
 import logging
 
+# local imports
+from .base import Backend
+
 logg = logging.getLogger().getChild(__name__)
 
 base_dir = '/var/lib'
@@ -19,9 +22,10 @@ def data_dir_for(chain_spec, object_id, base_dir=base_dir):
     return os.path.join(chain_dir, object_id)
 
 
-class SyncerFileBackend:
+class FileBackend(Backend):
 
     def __init__(self, chain_spec, object_id=None, base_dir=base_dir):
+        super(FileBackend, self).__init__(flags_reversed=True)
         self.object_data_dir = data_dir_for(chain_spec, object_id, base_dir=base_dir)
 
         self.block_height_offset = 0
@@ -38,14 +42,12 @@ class SyncerFileBackend:
         self.db_object_filter = None
         self.chain_spec = chain_spec
 
-        self.filter_count = 0
         self.filter = b'\x00'
         self.filter_names = []
 
         if self.object_id != None:
             self.connect()
             self.disconnect()
-
 
 
     @staticmethod
@@ -157,7 +159,11 @@ class SyncerFileBackend:
 
     def get(self):
         logg.debug('filter {}'.format(self.filter.hex()))
-        return ((self.block_height_cursor, self.tx_index_cursor), int.from_bytes(self.filter, 'little'))
+        return ((self.block_height_cursor, self.tx_index_cursor), self.get_flags())
+
+
+    def get_flags(self):
+        return int.from_bytes(self.filter, 'little')
 
 
     def set(self, block_height, tx_index):
@@ -172,7 +178,7 @@ class SyncerFileBackend:
 #            c += f.write(self.filter[c:])
 #        f.close()
 
-        return ((self.block_height_cursor, self.tx_index_cursor), int.from_bytes(self.filter, 'little'))
+        return ((self.block_height_cursor, self.tx_index_cursor), self.get_flags())
 
 
     def __set(self, block_height, tx_index, category):
@@ -195,9 +201,9 @@ class SyncerFileBackend:
         if start_block_height >= target_block_height:
             raise ValueError('start block height must be lower than target block height')
        
-        uu = SyncerFileBackend.create_object(chain_spec, base_dir=base_dir)
+        uu = FileBackend.create_object(chain_spec, base_dir=base_dir)
 
-        o = SyncerFileBackend(chain_spec, uu, base_dir=base_dir)
+        o = FileBackend(chain_spec, uu, base_dir=base_dir)
         o.__set(target_block_height, 0, 'target')
         o.__set(start_block_height, 0, 'offset')
 
@@ -227,7 +233,7 @@ class SyncerFileBackend:
 
             logg.debug('found syncer entry {} in {}'.format(object_id, d))
 
-            o = SyncerFileBackend(chain_spec, object_id, base_dir=base_dir)
+            o = FileBackend(chain_spec, object_id, base_dir=base_dir)
 
             entries[o.block_height_offset] = o
 
@@ -240,13 +246,13 @@ class SyncerFileBackend:
 
     @staticmethod
     def resume(chain_spec, base_dir=base_dir):
-        return SyncerFileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+        return FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
 
 
     @staticmethod
     def first(chain_spec, base_dir=base_dir):
         
-        entries = SyncerFileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+        entries = FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
 
         return entries[len(entries)-1]
 

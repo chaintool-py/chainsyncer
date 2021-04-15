@@ -9,11 +9,12 @@ from chainlib.chain import ChainSpec
 from chainsyncer.db.models.sync import BlockchainSync
 from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.db.models.base import SessionBase
+from .base import Backend
 
 logg = logging.getLogger().getChild(__name__)
 
 
-class SyncerBackend:
+class SyncerBackend(Backend):
     """Interface to block and transaction sync state.
 
     :param chain_spec: Chain spec for the chain that syncer is running for.
@@ -22,6 +23,7 @@ class SyncerBackend:
     :type object_id: number
     """
     def __init__(self, chain_spec, object_id):
+        super(SyncerBackend, self).__init__()
         self.db_session = None
         self.db_object = None
         self.db_object_filter = None
