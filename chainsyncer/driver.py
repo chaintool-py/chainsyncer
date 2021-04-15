@@ -72,6 +72,11 @@ class Syncer:
         self.backend.register_filter(str(f))
 
 
+    def process_single(self, conn, block, tx, block_height, tx_index):
+        self.backend.set(block_height, tx_index)
+        self.filter.apply(conn, block, tx)
+
+
 class BlockPollSyncer(Syncer):
 
     def __init__(self, backend, pre_callback=None, block_callback=None, post_callback=None):
@@ -120,14 +125,16 @@ class HeadSyncer(BlockPollSyncer):
         while True:
             try:
                 tx = block.tx(i)
-                rcpt = conn.do(receipt(tx.hash))
-                tx.apply_receipt(rcpt)
-                self.backend.set(block.number, i)
-                self.filter.apply(conn, block, tx)
             except IndexError as e:
                 logg.debug('index error syncer rcpt get {}'.format(e))
                 self.backend.set(block.number + 1, 0)
                 break
+
+            rcpt = conn.do(receipt(tx.hash))
+            tx.apply_receipt(rcpt)
+    
+            self.process_single(conn, block, tx, block.number, i)
+                        
             i += 1
         
 
