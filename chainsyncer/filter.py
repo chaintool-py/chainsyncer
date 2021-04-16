@@ -1,9 +1,6 @@
 # standard imports
 import logging
 
-# external imports
-import sqlalchemy
-
 # local imports
 from .error import BackendError
 
@@ -12,8 +9,7 @@ logg = logging.getLogger(__name__)
 
 class SyncFilter:
 
-    def __init__(self, backend, safe=True):
-        self.safe = safe
+    def __init__(self, backend):
         self.filters = []
         self.backend = backend
 
@@ -30,7 +26,7 @@ class SyncFilter:
         session = None
         try:
             session = self.backend.connect()
-        except sqlalchemy.exc.TimeoutError as e:
+        except TimeoutError as e:
             self.backend.disconnect()
             raise BackendError('database connection fail: {}'.format(e))
         i = 0

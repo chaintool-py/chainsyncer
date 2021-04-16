@@ -3,14 +3,19 @@ import uuid
 import logging
 import time
 import signal
+import json
 
 # external imports
-import sqlalchemy
 from chainlib.eth.block import (
         block_by_number,
         Block,
         )
-from chainlib.eth.tx import receipt
+from chainlib.eth.tx import (
+        receipt,
+        transaction,
+        Tx,
+        )
+from chainlib.error import JSONRPCException
 
 # local imports
 from chainsyncer.filter import SyncFilter
@@ -129,13 +134,19 @@ class HeadSyncer(BlockPollSyncer):
         while True:
             try:
                 tx = block.tx(i)
+            except AttributeError:
+                o = transaction(block.txs[i])
+                r = conn.do(o)
+                tx = Tx(Tx.src_normalize(r), block=block)
             except IndexError as e:
                 logg.debug('index error syncer rcpt get {}'.format(e))
                 self.backend.set(block.number + 1, 0)
                 break
 
+            # TODO: Move specifics to eth subpackage, receipts are not a global concept
             rcpt = conn.do(receipt(tx.hash))
-            tx.apply_receipt(rcpt)
+            if rcpt != None:
+                tx.apply_receipt(Tx.src_normalize(rcpt))
     
             self.process_single(conn, block, tx)
             self.backend.reset_filter()
@@ -180,9 +191,13 @@ class HistorySyncer(HeadSyncer):
         block_number = height[0]
         block_hash = []
         o = block_by_number(block_number)
-        r = conn.do(o)
+        try:
+            r = conn.do(o)
+        # TODO: Disambiguate whether error is temporary or permanent, if permanent, SyncDone should be raised, because a historical sync is attempted into the future
+        except JSONRPCException:
+            r = None
         if r == None:
-            raise NoBlockForYou()
+            raise SyncDone() #NoBlockForYou()
         b = Block(r)
 
         return b
