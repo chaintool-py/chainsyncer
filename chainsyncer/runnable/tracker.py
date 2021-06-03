@@ -27,17 +27,6 @@ logg = logging.getLogger()
 config_dir = '/usr/local/etc/cic-syncer'
 
 
-class Handler:
-
-    def __init__(self, method, domain):
-        self.method = method
-        self.domain = domain
-
-    def handle(self, getter, tx, chain):
-        logg.debug('noop tx {} chain {} method {} domain {}'.format(tx, chain, self.method, self.domain))
-handler = getattr(Handler, 'handle')
-
-
 argparser = argparse.ArgumentParser(description='daemon that monitors transactions in new blocks')
 argparser.add_argument('-p', '--provider', dest='p', type=str, help='chain rpc provider address')
 argparser.add_argument('-c', type=str, default=config_dir, help='config root to use')
