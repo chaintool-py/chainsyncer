@@ -42,7 +42,6 @@ argparser = argparse.ArgumentParser(description='daemon that monitors transactio
 argparser.add_argument('-p', '--provider', dest='p', type=str, help='chain rpc provider address')
 argparser.add_argument('-c', type=str, default=config_dir, help='config root to use')
 argparser.add_argument('-i', '--chain-spec', type=str, dest='i', help='chain spec')
-argparser.add_argument('--abi-dir', dest='abi_dir', type=str, help='Directory containing bytecode and abi')
 argparser.add_argument('--env-prefix', default=os.environ.get('CONFINI_ENV_PREFIX'), dest='env_prefix', type=str, help='environment prefix for variables to overwrite configuration')
 argparser.add_argument('--offset', type=int, help='block number to start sync')
 argparser.add_argument('-q', type=str, default='cic-eth', help='celery queue to submit transaction tasks to')
@@ -56,7 +55,6 @@ elif args.vv == True:
     logging.getLogger().setLevel(logging.DEBUG)
 
 config_dir = os.path.join(args.c)
-os.makedirs(config_dir, 0o777, True)
 config = confini.Config(config_dir, args.env_prefix)
 config.process()
 # override args

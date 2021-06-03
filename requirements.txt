@@ -1,4 +1,4 @@
 confini~=0.3.6rc3
 semver==2.13.0
 hexathon~=0.0.1a7
-chainlib~=0.0.2a15
+chainlib~=0.0.3rc2

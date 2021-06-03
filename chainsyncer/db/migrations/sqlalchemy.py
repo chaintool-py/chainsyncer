@@ -1,10 +1,10 @@
 from alembic import op
 import sqlalchemy as sa
 
-def chainsyncer_upgrade(major, minor, patch):
+def chainsyncer_upgrade(major=0, minor=0, patch=1):
     r0_0_1_u()
 
-def chainsyncer_downgrade(major, minor, patch):
+def chainsyncer_downgrade(major=0, minor=0, patch=1):
     r0_0_1_d()
 
 def r0_0_1_u():

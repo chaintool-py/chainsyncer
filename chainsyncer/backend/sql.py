@@ -22,6 +22,9 @@ class SQLBackend(Backend):
     :param object_id: Unique id for the syncer session.
     :type object_id: number
     """
+
+    base = None
+
     def __init__(self, chain_spec, object_id):
         super(SQLBackend, self).__init__()
         self.db_session = None
@@ -31,6 +34,13 @@ class SQLBackend(Backend):
         self.object_id = object_id
         self.connect()
         self.disconnect()
+
+
+    @classmethod
+    def setup(cls, dsn, debug=False, *args, **kwargs):
+        if cls.base == None:
+            cls.base = SessionBase
+            cls.base.connect(dsn, debug=debug, pool_size=kwargs.get('pool_size', 0))
 
 
     def connect(self):
@@ -264,7 +274,6 @@ class SQLBackend(Backend):
         :returns: "Live" syncer object
         :rtype: cic_eth.db.models.BlockchainSync
         """
-        object_id = None
         session = SessionBase.create_session()
 
         o = BlockchainSync(str(chain_spec), block_height, 0, None)
