@@ -20,7 +20,12 @@ class SyncFilter:
         logg.debug('added filter "{}"'.format(str(fltr)))
 
         self.filters.append(fltr)
-   
+
+
+    def apply_one(self, fltr, idx, conn, block, tx, session):
+        fltr.filter(conn, block, tx, session)
+        self.backend.complete_filter(idx)
+
 
     def apply(self, conn, block, tx):
         session = None
@@ -33,15 +38,14 @@ class SyncFilter:
         (pair, flags) = self.backend.get()
         for f in self.filters:
             if not self.backend.check_filter(i, flags):
-            #if flags & (1 << i) == 0:
                 logg.debug('applying filter {} {}'.format(str(f), flags))
-                f.filter(conn, block, tx, session)
-                self.backend.complete_filter(i)
+                self.apply_one(f, i, conn, block, tx, session)
             else:
                 logg.debug('skipping previously applied filter {} {}'.format(str(f), flags))
             i += 1
 
         self.backend.disconnect()
+
 
 class NoopFilter:
     

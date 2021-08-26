@@ -28,15 +28,6 @@ class FileBackend(Backend):
         super(FileBackend, self).__init__(flags_reversed=True)
         self.object_data_dir = data_dir_for(chain_spec, object_id, base_dir=base_dir)
 
-        self.block_height_offset = 0
-        self.tx_index_offset = 0
-
-        self.block_height_cursor = 0
-        self.tx_index_cursor = 0
-
-        self.block_height_target = 0
-        self.tx_index_target = 0
-
         self.object_id = object_id
         self.db_object = None
         self.db_object_filter = None
@@ -206,8 +197,18 @@ class FileBackend(Backend):
         o = FileBackend(chain_spec, uu, base_dir=base_dir)
         o.__set(target_block_height, 0, 'target')
         o.__set(start_block_height, 0, 'offset')
+        o.__set(start_block_height, 0, 'cursor')
 
-        #return uu
+        return o
+
+
+    @staticmethod
+    def live(chain_spec, block_height, base_dir=base_dir):
+        uu = FileBackend.create_object(chain_spec, base_dir=base_dir)
+        o = FileBackend(chain_spec, uu, base_dir=base_dir)
+        o.__set(block_height, 0, 'offset')
+        o.__set(block_height, 0, 'cursor')
+
         return o
 
 
@@ -245,15 +246,20 @@ class FileBackend(Backend):
 
 
     @staticmethod
-    def resume(chain_spec, base_dir=base_dir):
-        return FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+    def resume(chain_spec, block_height, base_dir=base_dir):
+        try:
+            return FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+        except FileNotFoundError:
+            return []
 
 
     @staticmethod
     def first(chain_spec, base_dir=base_dir):
-        
-        entries = FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
-
+        entries = []
+        try:
+            entries = FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
+        except FileNotFoundError:
+            return entries
         return entries[len(entries)-1]
 
 

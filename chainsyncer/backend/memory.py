@@ -19,6 +19,7 @@ class MemBackend(Backend):
         self.target_block = target_block
         self.db_session = None
         self.filter_names = []
+        self.filter_states = {}
 
 
     def connect(self):

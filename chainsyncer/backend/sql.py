@@ -78,14 +78,6 @@ class SQLBackend(Backend):
         self.db_session.close()
         self.db_session = None
        
-
-    def chain(self):
-        """Returns chain spec for syncer
-
-        :returns: Chain spec
-        :rtype chain_spec: cic_registry.chain.ChainSpec
-        """
-        return self.chain_spec
    
 
     def get(self):
@@ -313,5 +305,3 @@ class SQLBackend(Backend):
         self.disconnect()
 
 
-    def __str__(self):
-        return "syncerbackend chain {} start {} target {}".format(self.chain(), self.start(), self.target())

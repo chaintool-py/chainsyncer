@@ -1,4 +1,4 @@
-confini~=0.3.6rc3
+confini>=0.3.6rc3,<0.5.0
 semver==2.13.0
-hexathon~=0.0.1a7
-chainlib~=0.0.3rc2
+hexathon~=0.0.1a8
+chainlib>=0.0.9a2,<=0.1.0
