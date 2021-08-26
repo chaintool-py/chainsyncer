@@ -13,3 +13,7 @@ class RequestError(Exception):
 
 class BackendError(Exception):
     pass
+
+
+class AbortTx(Exception):
+    pass

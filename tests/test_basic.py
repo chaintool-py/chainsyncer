@@ -8,7 +8,7 @@ from chainlib.chain import ChainSpec
 from chainsyncer.backend.memory import MemBackend
 
 # testutil imports
-from tests.base import TestBase
+from tests.chainsyncer_base import TestBase
 
 
 class TestBasic(TestBase):

@@ -6,7 +6,7 @@ import logging
 from hexathon import add_0x
 
 # local imports
-from chainsyncer.driver import HistorySyncer
+from chainsyncer.driver.history import HistorySyncer
 from chainsyncer.error import NoBlockForYou
 
 logg = logging.getLogger().getChild(__name__)
@@ -44,9 +44,9 @@ class MockBlock:
 class TestSyncer(HistorySyncer):
 
 
-    def __init__(self, backend, tx_counts=[]):
+    def __init__(self, backend, chain_interface, tx_counts=[]):
         self.tx_counts = tx_counts
-        super(TestSyncer, self).__init__(backend)
+        super(TestSyncer, self).__init__(backend, chain_interface)
 
 
     def get(self, conn):

@@ -1,12 +1,12 @@
 from alembic import op
 import sqlalchemy as sa
 
-from chainsyncer.db.migrations.default.versions.tags.sync import
+from chainsyncer.db.migrations.default.versions.src.sync import (
     upgrade as upgrade_sync,
     downgrade as downgrade_sync,
 )
 
-from chainsyncer.db.migrations.default.versions.tags.sync_tx import
+from chainsyncer.db.migrations.default.versions.src.sync_tx import (
     upgrade as upgrade_sync_tx,
     downgrade as downgrade_sync_tx,
 )

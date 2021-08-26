@@ -5,3 +5,4 @@ __pycache__
 gmon.out
 build/
 dist/
+*.sqlite

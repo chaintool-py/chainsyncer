@@ -16,7 +16,7 @@ from chainsyncer.backend.file import (
     )
 
 # test imports
-from tests.base import TestBase
+from tests.chainsyncer_base import TestBase
 from chainsyncer.unittest.base import (
         MockBlock,
         MockConn,
@@ -77,7 +77,7 @@ class TestInterrupt(TestBase):
                 ]
         
 
-    def assert_filter_interrupt(self, vector):
+    def assert_filter_interrupt(self, vector, chain_interface):
     
         logg.debug('running vector {} {}'.format(str(self.backend), vector))
 
@@ -85,7 +85,7 @@ class TestInterrupt(TestBase):
         for v in vector:
             z += v
 
-        syncer = TestSyncer(self.backend, vector)
+        syncer = TestSyncer(self.backend, chain_interface, vector)
 
         filters =  [
             CountFilter('foo'),
@@ -114,7 +114,7 @@ class TestInterrupt(TestBase):
     def test_filter_interrupt_memory(self):
         for vector in self.vectors:
             self.backend = MemBackend(self.chain_spec, None, target_block=len(vector))
-            self.assert_filter_interrupt(vector)
+            self.assert_filter_interrupt(vector, self.interface)
 
 
     def test_filter_interrupt_file(self):
@@ -123,13 +123,13 @@ class TestInterrupt(TestBase):
             d = tempfile.mkdtemp()
             #os.makedirs(data_dir_for(self.chain_spec, 'foo', d))
             self.backend = FileBackend.initial(self.chain_spec, len(vector), base_dir=d) #'foo', base_dir=d)
-            self.assert_filter_interrupt(vector)
+            self.assert_filter_interrupt(vector, self.interface)
 
 
     def test_filter_interrupt_sql(self):
         for vector in self.vectors:
             self.backend = SQLBackend.initial(self.chain_spec, len(vector))
-            self.assert_filter_interrupt(vector)
+            self.assert_filter_interrupt(vector, self.interface)
 
 
 

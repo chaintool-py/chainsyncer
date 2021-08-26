@@ -11,7 +11,7 @@ from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.backend.sql import SQLBackend
 
 # testutil imports
-from tests.base import TestBase
+from tests.chainsyncer_base import TestBase
 
 logg = logging.getLogger()
 
