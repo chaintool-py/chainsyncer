@@ -19,32 +19,44 @@ class SQLBackend(Backend):
 
     :param chain_spec: Chain spec for the chain that syncer is running for.
     :type chain_spec: cic_registry.chain.ChainSpec
-    :param object_id: Unique id for the syncer session.
-    :type object_id: number
+    :param object_id: Unique database record id for the syncer session.
+    :type object_id: int
     """
 
     base = None
 
     def __init__(self, chain_spec, object_id):
-        super(SQLBackend, self).__init__()
+        super(SQLBackend, self).__init__(int(object_id))
         self.db_session = None
         self.db_object = None
         self.db_object_filter = None
         self.chain_spec = chain_spec
-        self.object_id = object_id
         self.connect()
         self.disconnect()
 
 
     @classmethod
-    def setup(cls, dsn, debug=False, *args, **kwargs):
+    def setup(cls, dsn, debug=False, pool_size=0, *args, **kwargs):
+        """Set up database connection backend.
+
+        :param dsn: Database connection string
+        :type dsn: str
+        :param debug: Activate debug output in sql engine
+        :type debug: bool
+        :param pool_size: Size of transaction pool
+        :type pool_size: int
+        """
         if cls.base == None:
             cls.base = SessionBase
-            cls.base.connect(dsn, debug=debug, pool_size=kwargs.get('pool_size', 0))
+            cls.base.connect(dsn, debug=debug, pool_size=pool_size)
 
 
     def connect(self):
-        """Loads the state of the syncer session with the given id.
+        """Loads the state of the syncer session by the given database record id.
+
+        :raises ValueError: Database syncer object with given id does not exist
+        :rtype: sqlalchemy.orm.session.Session
+        :returns: Database session object
         """
         if self.db_session == None:
             self.db_session = SessionBase.create_session()
@@ -66,7 +78,7 @@ class SQLBackend(Backend):
 
 
     def disconnect(self):
-        """Commits state of sync to backend.
+        """Commits state of sync to backend and frees connection resources.
         """
         if self.db_session == None:
             return
@@ -83,8 +95,8 @@ class SQLBackend(Backend):
     def get(self):
         """Get the current state of the syncer cursor.
 
-        :returns: Block and block transaction height, respectively
         :rtype: tuple
+        :returns: Block height / tx index tuple, and filter flags value
         """
         self.connect()
         pair = self.db_object.cursor()
@@ -94,12 +106,13 @@ class SQLBackend(Backend):
    
 
     def set(self, block_height, tx_height):
-        """Update the state of the syncer cursor
-        :param block_height: Block height of cursor
-        :type block_height: number
-        :param tx_height: Block transaction height of cursor
-        :type tx_height: number
-        :returns: Block and block transaction height, respectively
+        """Update the state of the syncer cursor.
+
+        :param block_height: New block height
+        :type block_height: int
+        :param tx_height: New transaction height in block
+        :type tx_height: int
+        :returns: Block height / tx index tuple, and filter flags value
         :rtype: tuple
         """
         self.connect()
@@ -112,7 +125,7 @@ class SQLBackend(Backend):
     def start(self):
         """Get the initial state of the syncer cursor.
 
-        :returns: Initial block and block transaction height, respectively
+        :returns: Block height / tx index tuple, and filter flags value
         :rtype: tuple
         """
         self.connect()
@@ -125,8 +138,8 @@ class SQLBackend(Backend):
     def target(self):
         """Get the target state (upper bound of sync) of the syncer cursor.
 
-        :returns: Target block height
-        :rtype: number
+        :returns: Block height and filter flags value
+        :rtype: tuple
         """
         self.connect()
         target = self.db_object.target()
@@ -139,12 +152,11 @@ class SQLBackend(Backend):
     def first(chain_spec):
         """Returns the model object of the most recent syncer in backend.
 
-        :param chain: Chain spec of chain that syncer is running for.
-        :type chain: cic_registry.chain.ChainSpec
+        :param chain_spec: Chain spec of chain that syncer is running for.
+        :type chain_spec: cic_registry.chain.ChainSpec
         :returns: Last syncer object 
         :rtype: cic_eth.db.models.BlockchainSync
         """
-        #return BlockchainSync.first(str(chain_spec))
         object_id = BlockchainSync.first(str(chain_spec))
         if object_id == None:
             return None
@@ -156,10 +168,13 @@ class SQLBackend(Backend):
     def initial(chain_spec, target_block_height, start_block_height=0):
         """Creates a new syncer session and commit its initial state to backend.
 
-        :param chain: Chain spec of chain that syncer is running for.
-        :type chain: cic_registry.chain.ChainSpec
-        :param block_height: Target block height
-        :type block_height: number
+        :param chain_spec: Chain spec of chain that syncer is running for
+        :type chain_spec: cic_registry.chain.ChainSpec
+        :param target_block_height: Target block height
+        :type target_block_height: int
+        :param start_block_height: Start block height
+        :type start_block_height: int
+        :raises ValueError: Invalid start/target specification
         :returns: New syncer object 
         :rtype: cic_eth.db.models.BlockchainSync
         """
@@ -185,11 +200,12 @@ class SQLBackend(Backend):
     def resume(chain_spec, block_height):
         """Retrieves and returns all previously unfinished syncer sessions.
 
+        If a previous open-ended syncer is found, a new syncer will be generated to sync from where that syncer left off until the block_height given as argument.
 
-        :param chain_spec: Chain spec of chain that syncer is running for.
+        :param chain_spec: Chain spec of chain that syncer is running for
         :type chain_spec: cic_registry.chain.ChainSpec
-        :param block_height: Target block height
-        :type block_height: number
+        :param block_height: Target block height for previous live syncer
+        :type block_height: int
         :returns: Syncer objects of unfinished syncs
         :rtype: list of cic_eth.db.models.BlockchainSync
         """
@@ -261,8 +277,8 @@ class SQLBackend(Backend):
 
         :param chain: Chain spec of chain that syncer is running for.
         :type chain: cic_registry.chain.ChainSpec
-        :param block_height: Target block height
-        :type block_height: number
+        :param block_height: Start block height
+        :type block_height: int
         :returns: "Live" syncer object
         :rtype: cic_eth.db.models.BlockchainSync
         """
@@ -283,6 +299,13 @@ class SQLBackend(Backend):
 
 
     def register_filter(self, name):
+        """Add filter to backend.
+
+        No check is currently implemented to enforce that filters are the same for existing syncers. Care must be taken by the caller to avoid inconsistencies. 
+
+        :param name: Name of filter
+        :type name: str
+        """
         self.connect()
         if self.db_object_filter == None:
             self.db_object_filter = BlockchainSyncFilter(self.db_object)
@@ -292,6 +315,11 @@ class SQLBackend(Backend):
 
 
     def complete_filter(self, n):
+        """Sets the filter at the given index as completed.
+
+        :param n: Filter index
+        :type n: int
+        """
         self.connect()
         self.db_object_filter.set(n)
         self.db_session.add(self.db_object_filter)
@@ -300,8 +328,8 @@ class SQLBackend(Backend):
 
 
     def reset_filter(self):
+        """Reset all filter states.
+        """
         self.connect()
         self.db_object_filter.clear()
         self.disconnect()
-
-

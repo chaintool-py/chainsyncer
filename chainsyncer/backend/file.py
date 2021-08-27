@@ -9,23 +9,54 @@ from .base import Backend
 
 logg = logging.getLogger().getChild(__name__)
 
-base_dir = '/var/lib'
+BACKEND_BASE_DIR = '/var/lib'
 
 
-def chain_dir_for(chain_spec, base_dir=base_dir):
+def chain_dir_for(chain_spec, base_dir=BACKEND_BASE_DIR):
+    """Retrieve file backend directory for the given chain spec.
+
+    :param chain_spec: Chain spec context of backend
+    :type chain_spec: chainlib.chain.ChainSpec
+    :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+    :type base_dir: str 
+    :rtype: str
+    :returns: Absolute path of chain backend directory
+    """
     base_data_dir = os.path.join(base_dir, 'chainsyncer')
     return os.path.join(base_data_dir, str(chain_spec).replace(':', '/'))
 
 
-def data_dir_for(chain_spec, object_id, base_dir=base_dir):
+def data_dir_for(chain_spec, object_id, base_dir=BACKEND_BASE_DIR):
+    """Retrieve file backend directory for the given syncer.
+
+    :param chain_spec: Chain spec context of backend
+    :type chain_spec: chainlib.chain.ChainSpec
+    :param object_id: Syncer id
+    :type object_id: str
+    :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+    :type base_dir: str 
+    :rtype: str
+    :returns: Absolute path of chain backend directory
+    """
     chain_dir = chain_dir_for(chain_spec, base_dir=base_dir)
     return os.path.join(chain_dir, object_id)
 
 
 class FileBackend(Backend):
+    """Filesystem backend implementation for syncer state.
 
-    def __init__(self, chain_spec, object_id=None, base_dir=base_dir):
-        super(FileBackend, self).__init__(flags_reversed=True)
+    FileBackend uses reverse order of filter flags.
+
+    :param chain_spec: Chain spec for the chain that syncer is running for.
+    :type chain_spec: cic_registry.chain.ChainSpec
+    :param object_id: Unique id for the syncer session.
+    :type object_id: str
+    :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+    :type base_dir: str 
+    """
+
+    def __init__(self, chain_spec, object_id, base_dir=BACKEND_BASE_DIR):
+        super(FileBackend, self).__init__(object_id, flags_reversed=True)
         self.object_data_dir = data_dir_for(chain_spec, object_id, base_dir=base_dir)
 
         self.object_id = object_id
@@ -42,7 +73,16 @@ class FileBackend(Backend):
 
 
     @staticmethod
-    def create_object(chain_spec, object_id=None, base_dir=base_dir):
+    def create_object(chain_spec, object_id=None, base_dir=BACKEND_BASE_DIR):
+        """Creates a new syncer session at the given backend destination.
+
+        :param chain_spec: Chain spec for the chain that syncer is running for.
+        :type chain_spec: cic_registry.chain.ChainSpec
+        :param object_id: Unique id for the syncer session.
+        :type object_id: str
+        :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+        :type base_dir: str 
+        """
         if object_id == None:
             object_id = str(uuid.uuid4())
 
@@ -89,6 +129,11 @@ class FileBackend(Backend):
 
 
     def load(self):
+        """Loads the state of the syncer at the given location of the instance.
+
+        :raises FileNotFoundError: Invalid data directory
+        :raises IsADirectoryError: Invalid data directory
+        """
         offset_path = os.path.join(self.object_data_dir, 'offset')
         f = open(offset_path, 'rb')
         b = f.read(16)
@@ -130,6 +175,10 @@ class FileBackend(Backend):
 
 
     def connect(self):
+        """Proxy for chainsyncer.backend.file.FileBackend.load that performs a basic sanity check for instance's backend location.
+
+        :raises ValueError: Sanity check failed
+        """
         object_path = os.path.join(self.object_data_dir, 'object_id') 
         f = open(object_path, 'r')
         object_id = f.read()
@@ -141,23 +190,46 @@ class FileBackend(Backend):
 
 
     def disconnect(self):
+        """FileBackend applies no actual connection, so this is noop
+        """
         pass
 
     
     def purge(self):
+        """Remove syncer state from backend.
+        """
         shutil.rmtree(self.object_data_dir)
 
 
     def get(self):
+        """Get the current state of the syncer cursor.
+
+        :rtype: tuple
+        :returns: Block height / tx index tuple, and filter flags value
+        """
         logg.debug('filter {}'.format(self.filter.hex()))
         return ((self.block_height_cursor, self.tx_index_cursor), self.get_flags())
 
 
     def get_flags(self):
+        """Get canonical representation format of flags.
+
+        :rtype: int
+        :returns: Filter flag bitfield value
+        """
         return int.from_bytes(self.filter, 'little')
 
 
     def set(self, block_height, tx_index):
+        """Update the state of the syncer cursor.
+
+        :param block_height: New block height
+        :type block_height: int
+        :param tx_height: New transaction height in block
+        :type tx_height: int
+        :returns: Block height / tx index tuple, and filter flags value
+        :rtype: tuple
+        """
         self.__set(block_height, tx_index, 'cursor')
 
 #        cursor_path = os.path.join(self.object_data_dir, 'filter')
@@ -188,7 +260,21 @@ class FileBackend(Backend):
 
 
     @staticmethod
-    def initial(chain_spec, target_block_height, start_block_height=0, base_dir=base_dir):
+    def initial(chain_spec, target_block_height, start_block_height=0, base_dir=BACKEND_BASE_DIR):
+        """Creates a new syncer session and commit its initial state to backend.
+
+        :param chain_spec: Chain spec of chain that syncer is running for.
+        :type chain_spec: cic_registry.chain.ChainSpec
+        :param target_block_height: Target block height
+        :type target_block_height: int
+        :param start_block_height: Start block height
+        :type start_block_height: int
+        :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+        :type base_dir: str 
+        :raises ValueError: Invalid start/target specification
+        :returns: New syncer object 
+        :rtype: cic_eth.db.models.BlockchainSync
+        """
         if start_block_height >= target_block_height:
             raise ValueError('start block height must be lower than target block height')
        
@@ -203,7 +289,18 @@ class FileBackend(Backend):
 
 
     @staticmethod
-    def live(chain_spec, block_height, base_dir=base_dir):
+    def live(chain_spec, block_height, base_dir=BACKEND_BASE_DIR):
+        """Creates a new open-ended syncer session starting at the given block height.
+
+        :param chain: Chain spec of chain that syncer is running for.
+        :type chain: cic_registry.chain.ChainSpec
+        :param block_height: Start block height
+        :type block_height: int
+        :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+        :type base_dir: str 
+        :returns: "Live" syncer object
+        :rtype: cic_eth.db.models.BlockchainSync
+        """
         uu = FileBackend.create_object(chain_spec, base_dir=base_dir)
         o = FileBackend(chain_spec, uu, base_dir=base_dir)
         o.__set(block_height, 0, 'offset')
@@ -213,15 +310,26 @@ class FileBackend(Backend):
 
 
     def target(self):
+        """Get the target state (upper bound of sync) of the syncer cursor.
+
+        :returns: Block height and filter flags value
+        :rtype: tuple
+        """
+
         return (self.block_height_target, 0,)
 
 
     def start(self):
+        """Get the initial state of the syncer cursor.
+
+        :returns: Block height / tx index tuple, and filter flags value
+        :rtype: tuple
+        """
         return ((self.block_height_offset, self.tx_index_offset), 0,)
 
 
     @staticmethod
-    def __sorted_entries(chain_spec, base_dir=base_dir):
+    def __sorted_entries(chain_spec, base_dir=BACKEND_BASE_DIR):
         chain_dir = chain_dir_for(chain_spec, base_dir=base_dir)
 
         entries = {}
@@ -246,7 +354,21 @@ class FileBackend(Backend):
 
 
     @staticmethod
-    def resume(chain_spec, block_height, base_dir=base_dir):
+    def resume(chain_spec, block_height, base_dir=BACKEND_BASE_DIR):
+        """Retrieves and returns all previously unfinished syncer sessions.
+
+        If a previous open-ended syncer is found, a new syncer will be generated to sync from where that syncer left off until the block_height given as argument.
+
+        :param chain_spec: Chain spec of chain that syncer is running for
+        :type chain_spec: cic_registry.chain.ChainSpec
+        :param block_height: Target block height for previous live syncer
+        :type block_height: int
+        :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+        :type base_dir: str 
+        :raises FileNotFoundError: Invalid backend location
+        :returns: Syncer objects of unfinished syncs
+        :rtype: list of cic_eth.db.models.BlockchainSync
+        """
         try:
             return FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
         except FileNotFoundError:
@@ -254,7 +376,16 @@ class FileBackend(Backend):
 
 
     @staticmethod
-    def first(chain_spec, base_dir=base_dir):
+    def first(chain_spec, base_dir=BACKEND_BASE_DIR):
+        """Returns the model object of the most recent syncer in backend.
+
+        :param chain_spec: Chain spec of chain that syncer is running for.
+        :type chain_spec: cic_registry.chain.ChainSpec
+        :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
+        :type base_dir: str 
+        :returns: Last syncer object 
+        :rtype: cic_eth.db.models.BlockchainSync
+        """
         entries = []
         try:
             entries = FileBackend.__sorted_entries(chain_spec, base_dir=base_dir)
@@ -264,8 +395,13 @@ class FileBackend(Backend):
 
 
     # n is zero-index of bit field
-    def complete_filter(self, n, base_dir=base_dir):
+    def complete_filter(self, n, base_dir=BACKEND_BASE_DIR):
+        """Sets the filter at the given index as completed.
 
+        :param n: Filter index, starting at zero
+        :type n: int
+        :raises IndexError: Index is outside filter count range
+        """
         if self.filter_count <= n:
             raise IndexError('index {} out of ranger for filter size {}'.format(n, self.filter_count))
 
@@ -286,8 +422,14 @@ class FileBackend(Backend):
         f.close()
 
 
-    # overwrites disk if manual changed members in struct
     def register_filter(self, name):
+        """Add filter to backend.
+
+        Overwrites record on disk if manual changed members in struct
+
+        :param name: Name of filter
+        :type name: str
+        """
         filter_path = os.path.join(self.object_data_dir, 'filter')
         if (self.filter_count + 1) % 8 == 0:
             self.filter += b'\x00'
@@ -308,6 +450,8 @@ class FileBackend(Backend):
 
 
     def reset_filter(self):
+        """Reset all filter states.
+        """
         self.filter = b'\x00' * len(self.filter)
         cursor_path = os.path.join(self.object_data_dir, 'filter')
         f = open(cursor_path, 'r+b')
