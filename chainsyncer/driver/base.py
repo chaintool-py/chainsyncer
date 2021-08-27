@@ -115,7 +115,7 @@ class Syncer:
         raise NotImplementedError()
 
 
-    def get(self, conn)
+    def get(self, conn):
         raise NotImplementedError()
 
 
