@@ -13,7 +13,10 @@ logg = logging.getLogger(__name__)
 
 
 class HistorySyncer(HeadSyncer):
+    """Bounded syncer implementation of the block poller. Reuses the head syncer process method implementation.
 
+
+    """
     name = 'history'
 
     def __init__(self, backend, chain_interface, pre_callback=None, block_callback=None, post_callback=None):
@@ -27,6 +30,15 @@ class HistorySyncer(HeadSyncer):
 
 
     def get(self, conn):
+        """Retrieve the block currently defined by the syncer cursor from the RPC provider.
+
+        :param conn: RPC connection
+        :type conn: chainlib.connectin.RPCConnection
+        :raises SyncDone: Block target reached (at which point the syncer should terminate).
+        :rtype: chainlib.block.Block
+        :returns: Block object
+        :todo: DRY against HeadSyncer
+        """
         (height, flags) = self.backend.get()
         if self.block_target < height[0]:
             raise SyncDone(self.block_target)
@@ -39,7 +51,7 @@ class HistorySyncer(HeadSyncer):
         except RPCException:
             r = None
         if r == None:
-            raise SyncDone() #NoBlockForYou()
+            raise SyncDone()
         b = self.chain_interface.block_from_src(r)
 
         return b

@@ -85,7 +85,7 @@ class NoopFilter:
         :type block: chainlib.block.Block
         :param tx: Transaction object
         :type tx: chainlib.tx.Tx
-        :param db_session: Backend sesssion object
+        :param db_session: Backend session object
         :type db_session: varies
         """
         logg.debug('noop filter :received\n{} {} {}'.format(block, tx, id(db_session)))

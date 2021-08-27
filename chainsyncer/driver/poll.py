@@ -14,21 +14,29 @@ logg = logging.getLogger(__name__)
 
 
 class BlockPollSyncer(Syncer):
+    """Syncer driver implementation of chainsyncer.driver.base.Syncer that retrieves new blocks through polling.
+    """
 
     name = 'blockpoll'
 
-    def __init__(self, backend, chain_interface, pre_callback=None, block_callback=None, post_callback=None):
-        super(BlockPollSyncer, self).__init__(backend, chain_interface, pre_callback, block_callback, post_callback)
-
-
     def loop(self, interval, conn):
+        """Indefinite loop polling the given RPC connection for new blocks in the given interval.
+
+        :param interval: Seconds to wait for next poll after processing of previous poll has been completed.
+        :type interval: int
+        :param conn: RPC connection
+        :type conn: chainlib.connection.RPCConnection
+        :rtype: tuple
+        :returns: See chainsyncer.backend.base.Backend.get
+        """
         (pair, fltr) = self.backend.get()
         start_tx = pair[1]
 
         while self.running and Syncer.running_global:
             if self.pre_callback != None:
                 self.pre_callback()
-            while True and Syncer.running_global:
+            #while True and Syncer.running_global:
+            while True and self.running:
                 if start_tx > 0:
                     start_tx -= 1
                     continue
