@@ -4,16 +4,24 @@ class SyncDone(Exception):
     pass
 
 class NoBlockForYou(Exception):
+    """Exception raised when attempt to retrieve a block from network that does not (yet) exist.
+    """
     pass
 
 
 class RequestError(Exception):
+    """Base exception for RPC query related errors.
+    """
     pass
 
 
 class BackendError(Exception):
+    """Base exception for syncer state backend related errors.
+    """
     pass
 
 
-class AbortTx(Exception):
-    pass
+#class AbortTx(Exception):
+#    """
+#    """
+#    pass
