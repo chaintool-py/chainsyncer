@@ -12,8 +12,8 @@ from .base import SessionBase
 class BlockchainSync(SessionBase):
     """Syncer control backend.
 
-    :param chain: Chain spec string representation
-    :type chain: str
+    :param chain_str: Chain spec string representation
+    :type chain_str: str
     :param block_start: Block number to start sync from
     :type block_start: number
     :param tx_start: Block transaction number to start sync from
@@ -24,30 +24,48 @@ class BlockchainSync(SessionBase):
     __tablename__ = 'chain_sync'
 
     blockchain = Column(String)
+    """Chainspec string specifying the blockchain the syncer is running against."""
     block_start = Column(Integer)
+    """The block height at the start of syncer."""
     tx_start = Column(Integer)
+    """The transaction index at the start of syncer."""
     block_cursor = Column(Integer)
+    """The block height for the current state of the syncer."""
     tx_cursor = Column(Integer)
+    """The transaction index for the current state of the syncer."""
     block_target = Column(Integer)
+    """The block height at which the syncer should terminate. Will be None for an open-ended syncer."""
     date_created = Column(DateTime, default=datetime.datetime.utcnow)
+    """Datetime when syncer was first created."""
     date_updated = Column(DateTime)
+    """Datetime of the latest update of the syncer state."""
+
+    def __init__(self, chain_str, block_start, tx_start, block_target=None):
+        self.blockchain = chain_str
+        self.block_start = block_start
+        self.tx_start = tx_start
+        self.block_cursor = block_start
+        self.tx_cursor = tx_start
+        self.block_target = block_target
+        self.date_created = datetime.datetime.utcnow()
+        self.date_updated = datetime.datetime.utcnow()
 
 
     @staticmethod
-    def first(chain, session=None):
+    def first(chain_str, session=None):
         """Check if a sync session for the specified chain already exists.
 
-        :param chain: Chain spec string representation
-        :type chain: str
+        :param chain_str: Chain spec string representation
+        :type chain_str: str
         :param session: Session to use. If not specified, a separate session will be created for this method only.
-        :type session: SqlAlchemy Session
-        :returns: Database primary key id of sync record
-        :rtype: number|None
+        :type session: sqlalchemy.orm.session.Sessoin
+        :returns: Database primary key id of sync record, or None if insert failed
+        :rtype: number
         """
         session = SessionBase.bind_session(session)
 
         q = session.query(BlockchainSync.id)
-        q = q.filter(BlockchainSync.blockchain==chain)
+        q = q.filter(BlockchainSync.blockchain==chain_str)
         o = q.first()
 
         if o == None:
@@ -63,12 +81,16 @@ class BlockchainSync(SessionBase):
 
     @staticmethod
     def get_last(session=None, live=True):
-        """Get the most recent open-ended ("live") syncer record.
+        """Get the most recent syncer record.
+
+        If live is set, only the latest open-ended syncer will be returned.
 
         :param session: Session to use. If not specified, a separate session will be created for this method only.
         :type session: SqlAlchemy Session
-        :returns: Block and transaction number, respectively
-        :rtype: tuple
+        :param live: Match only open-ended syncers
+        :type live: bool
+        :returns: Syncer database id 
+        :rtype: int
         """
         session = SessionBase.bind_session(session)
 
@@ -95,7 +117,7 @@ class BlockchainSync(SessionBase):
         :param session: Session to use. If not specified, a separate session will be created for this method only.
         :type session: SqlAlchemy Session
         :returns: Syncer database ids
-        :rtype: tuple, where first element is id
+        :rtype: list
         """
         unsynced = []
         local_session = False
@@ -115,7 +137,7 @@ class BlockchainSync(SessionBase):
 
 
     def set(self, block_height, tx_height):
-        """Set the height of the syncer instance.
+        """Set the cursor height of the syncer instance.
 
         Only manipulates object, does not transaction or commit to backend.
 
@@ -123,6 +145,8 @@ class BlockchainSync(SessionBase):
         :type block_height: number
         :param tx_height: Block transaction number
         :type tx_height: number
+        :rtype: tuple
+        :returns: Stored block height, transaction index
         """
         self.block_cursor = block_height
         self.tx_cursor = tx_height
@@ -133,7 +157,7 @@ class BlockchainSync(SessionBase):
     def cursor(self):
         """Get current state of cursor from cached instance.
 
-        :returns: Block and transaction height, respectively
+        :returns: Block height, transaction index
         :rtype: tuple
         """
         return (self.block_cursor, self.tx_cursor)
@@ -142,7 +166,7 @@ class BlockchainSync(SessionBase):
     def start(self):
         """Get sync block start position from cached instance.
 
-        :returns: Block and transaction height, respectively
+        :returns: Block height, transaction index
         :rtype: tuple
         """
         return (self.block_start, self.tx_start)
@@ -151,27 +175,16 @@ class BlockchainSync(SessionBase):
     def target(self):
         """Get sync block upper bound from cached instance.
 
-        :returns: Block number
-        :rtype: number, or None if sync is open-ended
+        :returns: Block number. Returns None if syncer is open-ended.
+        :rtype: int
         """
         return self.block_target
 
 
     def chain(self):
-        """Get chain the cached instance represents.
+        """Get chain string representation for which the cached instance represents.
         """
         return self.blockchain
-
-
-    def __init__(self, chain, block_start, tx_start, block_target=None):
-        self.blockchain = chain
-        self.block_start = block_start
-        self.tx_start = tx_start
-        self.block_cursor = block_start
-        self.tx_cursor = tx_start
-        self.block_target = block_target
-        self.date_created = datetime.datetime.utcnow()
-        self.date_updated = datetime.datetime.utcnow()
 
 
     def __str__(self):
@@ -187,5 +200,3 @@ target: {}
         self.tx_cursor,
         self.block_target,
         )
-
-
