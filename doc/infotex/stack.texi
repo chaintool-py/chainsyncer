@@ -1,0 +1,22 @@
+@node chainsyncer-stack
+@section Syncer driver stack
+
+The chainsyncer package defines a generic syncer stack intended to cover most circumstances.
+
+The default implementation is single-threaded. This means that block and block transactions will be processed sequentially.
+
+It is defined as follows, in order of inheritance:
+
+@table @code
+@item chainsyncer.driver.base.Syncer
+Base syncer object, providing base properties and flow control
+@item chainsyncer.driver.poll.BlockPollSyncer
+Polling block retriever, defining the main loop and callback logic
+@item chainsyncer.driver.head.HeadSyncer
+Applied open-ended syncer settings, and defines the processing of a single block
+@item chainsyncer.driver.history.HistorySyncer
+Builds on chainsyncer.driver.head.HeadSyncer, and differs only in the fact that block not found is considered an error, and reaching the target block is considered a normal termination of the syncer loop.
+@end table
+
+Additionally, asynchronous driver modules exist in the codebase. These are still considered as experimental, and will only be documented once considered semi-stable.
+

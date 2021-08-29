@@ -1,0 +1,37 @@
+@node chainsyncer-backend
+@section Backend implementations
+
+While syncing the chain, we need to keep track of where we are in the syncing process. The syncer backend is the pluggable component that records this state. 
+
+The state consists of three parts, in hierarchical order:
+
+@enumerate
+@item Block height
+@item Transaction index in block
+@item Individual code filters to execute per transaction
+@end enumerate
+
+@subsection Syncer types
+
+By default there are two types of syncers.
+
+There is the @emph{live syncer} which continues to consume new blocks as they are available.
+
+There is also the @emph{history syncer} which syncs blocks between two specific points.
+
+A typical first-time syncer invocation defines a starting block height from which to retrieve blocks, in which case two syncers will be created;
+
+@itemize
+@item A history syncer syncing from the start height until the height at the time of the invocation.
+@item A live syncer syncing from the height at the time of the invocation, indefinitely retrieveing new blocks.
+@end itemize
+
+A typical resumed syncer invocation will involve additional syncers, depending on the state that was left off:
+
+@itemize
+@item History syncers for each previously incomplete history syncer run.
+@item A new history syncer resuming where the last live syncer left off, until the height at the time of invocation of the resume.
+@item A new live syncer syncing from the height at the time of the invocation, indefinitely retrieving  new blocks.
+@end itemize
+
+In short, the consequence for the above is that one additional syncer will be spawned every time a syncer session is resumed.

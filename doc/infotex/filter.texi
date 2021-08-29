@@ -1,0 +1,25 @@
+@node chainsyncer-filter
+@section Syncer filter
+
+A filter is a piece of code that gets executed for every transaction in a block.
+
+The filter will receive the block and transaction data, aswell as an RPC and syncer backend connection. This enables the code interact with the blockchain node provisioning the chain context of the syncer session, aswell as all chain-specific details of the specific block and transaction at the current syncer state.
+
+
+@subsection Filter execution state
+
+The syncer keeps track of which filters have been executed for which transaction.
+
+Every filter added to the syncer adds a new bit to a bit field constituting a filter flag. When a filter has finished executing, the bit corresponding to the filter's index in the syncer filter array should be set and stored.
+
+Since atomicity across code execution and flag setting cannot be guaranteed, it is the implementer's responsibility to ensure that a @emph{started} filter execution actually has been @emph{completed}. If proper care is not taken, individual filter code @emph{may} be run twice for a particular transaction.
+
+Allowing for disambiguation between started and completed filters should be in scope for imminent improvement of the syncer package.
+
+
+@subsection Integrity protection
+
+Backends may optionally enable filter integrity protection. In practice this means that if a specific syncer session was started with a specific collection of filters, the syncer session may not be resumed with a different collection of filters.
+
+Depending on the implementation, the collection of filters may or may not be dependent on the order in which they are added.
+
