@@ -9,6 +9,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 # local imports
 from .base import SessionBase
 from .sync import BlockchainSync
+from chainsyncer.error import LockError
 
 zero_digest = bytes(32).hex()
 logg = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class BlockchainSyncFilter(SessionBase):
     chain_sync_id = Column(Integer, ForeignKey('chain_sync.id'))
     flags_start = Column(LargeBinary)
     flags = Column(LargeBinary)
+    flags_lock = Column(Integer)
     digest = Column(String(64))
     count = Column(Integer)
 
@@ -47,8 +49,18 @@ class BlockchainSyncFilter(SessionBase):
             flags = flags.to_bytes(bytecount, 'big')
         self.flags_start = flags
         self.flags = flags
+        self.flags_lock = 0
 
         self.chain_sync_id = chain_sync.id
+
+
+    @staticmethod
+    def load(sync_id, session=None):
+        q = session.query(BlockchainSyncFilter)
+        q = q.filter(BlockchainSyncFilter.chain_sync_id==sync_id)
+        o = q.first()
+        if o.is_locked():
+            raise LockError('locked state for flag {} of sync id {} must be manually resolved'.format(o.flags_lock))
 
 
     def add(self, name):
@@ -106,9 +118,16 @@ class BlockchainSyncFilter(SessionBase):
         return (n, self.count, self.digest)
 
 
+    def is_locked(self):
+        return self.flags_lock > 0
+
+
     def clear(self):
         """Set current filter flag value to zero.
         """
+        if self.is_locked():
+            raise LockError('flag clear attempted when lock set at {}'.format(self.flags_lock))
+
         self.flags = bytearray(len(self.flags))
 
 
@@ -120,8 +139,13 @@ class BlockchainSyncFilter(SessionBase):
         :raises IndexError: Invalid flag index
         :raises AttributeError: Flag at index already set
         """
+        if self.is_locked():
+            raise LockError('flag set attempted when lock set at {}'.format(self.flags_lock))
+
         if n > self.count:
             raise IndexError('bit flag out of range')
+
+        self.flags_lock = n
 
         b = 1 << (n % 8)
         i = int(n / 8)
@@ -131,3 +155,10 @@ class BlockchainSyncFilter(SessionBase):
         flags = bytearray(self.flags)
         flags[byte_idx] |= b
         self.flags = flags
+
+
+    def release(self, check_bit=0):
+        if check_bit > 0:
+            if self.flags_lock > 0 and self.flags_lock != check_bit:
+                raise LockError('release attemped on explicit bit {}, but bit {} was locked'.format(check_bit, self.flags_lock))
+        self.flags_lock = 0

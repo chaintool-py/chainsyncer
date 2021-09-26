@@ -36,6 +36,7 @@ class SyncFilter:
 
 
     def __apply_one(self, fltr, idx, conn, block, tx, session):
+        self.backend.begin_filter(idx)
         fltr.filter(conn, block, tx, session)
         self.backend.complete_filter(idx)
 

@@ -21,6 +21,12 @@ class BackendError(Exception):
     pass
 
 
+class LockError(Exception):
+    """Base exception for attempting to manipulate a locked property
+    """
+    pass
+
+
 #class AbortTx(Exception):
 #    """
 #    """

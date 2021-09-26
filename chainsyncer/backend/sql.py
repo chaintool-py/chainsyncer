@@ -314,14 +314,22 @@ class SQLBackend(Backend):
         self.disconnect()
 
 
-    def complete_filter(self, n):
-        """Sets the filter at the given index as completed.
+    def begin_filter(self, n):
+        """Marks start of execution of the filter indexed by the corresponding bit.
 
         :param n: Filter index
         :type n: int
         """
         self.connect()
         self.db_object_filter.set(n)
+        self.db_session.add(self.db_object_filter)
+        self.db_session.commit()
+        self.disconnect()
+
+
+    def complete_filter(self, n):
+        self.connect()
+        self.db_object_filter.release(check_bit=n)
         self.db_session.add(self.db_object_filter)
         self.db_session.commit()
         self.disconnect()

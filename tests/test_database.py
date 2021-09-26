@@ -9,6 +9,7 @@ from chainlib.chain import ChainSpec
 from chainsyncer.db.models.base import SessionBase
 from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.backend.sql import SQLBackend
+from chainsyncer.error import LockError
 
 # testutil imports
 from tests.chainsyncer_base import TestBase
@@ -29,6 +30,35 @@ class TestDatabase(TestBase):
         bogus_chain_spec = ChainSpec('bogus', 'foo', 13, 'baz')
         sync_id = SQLBackend.first(bogus_chain_spec)
         self.assertIsNone(sync_id)
+
+
+    def test_backend_filter_lock(self):
+        s = SQLBackend.live(self.chain_spec, 42)
+
+        s.connect()
+        filter_id = s.db_object_filter.id
+        s.disconnect()
+
+        session = SessionBase.create_session()
+        o = session.query(BlockchainSyncFilter).get(filter_id)
+        self.assertEqual(len(o.flags), 0)
+        session.close()
+
+        s.register_filter(str(0))
+        s.register_filter(str(1))
+
+        s.connect()
+        filter_id = s.db_object_filter.id
+        s.disconnect()
+
+        session = SessionBase.create_session()
+        o = session.query(BlockchainSyncFilter).get(filter_id)
+
+        o.set(1)
+        with self.assertRaises(LockError):
+            o.set(2)
+        o.release()
+        o.set(2)
 
 
     def test_backend_filter(self):
@@ -59,6 +89,7 @@ class TestDatabase(TestBase):
 
         for i in range(9):
             o.set(i)
+            o.release()
 
         (f, c, d) = o.cursor()
         self.assertEqual(f, t)
@@ -144,8 +175,8 @@ class TestDatabase(TestBase):
         s.register_filter('baz')
 
         s.set(43, 13)
-        s.complete_filter(0)
-        s.complete_filter(2)
+        s.begin_filter(0)
+        s.begin_filter(2)
 
         s = SQLBackend.resume(self.chain_spec, 666)
         (pair, flags) = s[0].get()

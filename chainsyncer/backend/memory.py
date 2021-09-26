@@ -86,7 +86,7 @@ class MemBackend(Backend):
         self.filter_count += 1
 
 
-    def complete_filter(self, n):
+    def begin_filter(self, n):
         """Set filter at index as completed for the current block / tx state.
 
         :param n: Filter index
@@ -97,6 +97,10 @@ class MemBackend(Backend):
         logg.debug('set filter {} {}'.format(self.filter_names[n], v))
 
 
+    def complete_filter(self, n):
+        pass
+
+
     def reset_filter(self):
         """Set all filters to unprocessed for the current block / tx state.
         """
@@ -104,11 +108,5 @@ class MemBackend(Backend):
         self.flags = 0
 
     
-#    def get_flags(self):
-#        """Returns flags 
-#        """
-#        return self.flags
-
-
     def __str__(self):
         return "syncer membackend {} chain {} cursor {}".format(self.object_id, self.chain(), self.get())
