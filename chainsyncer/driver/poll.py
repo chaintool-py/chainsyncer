@@ -9,7 +9,8 @@ from chainsyncer.error import (
         NoBlockForYou,
         )
 
-logg = logging.getLogger(__name__)
+#logg = logging.getLogger(__name__)
+logg = logging.getLogger()
 
 
 
@@ -29,6 +30,7 @@ class BlockPollSyncer(Syncer):
         :rtype: tuple
         :returns: See chainsyncer.backend.base.Backend.get
         """
+        raise ValueError()
         (pair, fltr) = self.backend.get()
         start_tx = pair[1]
 

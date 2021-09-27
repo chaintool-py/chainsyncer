@@ -184,5 +184,16 @@ class TestDatabase(TestBase):
         self.assertEqual(flags, 5)
 
 
+    def test_backend_sql_custom(self):
+        chain_spec = ChainSpec('evm', 'bloxberg', 8996, 'foo')
+        flags = 5
+        flags_target = 1023
+        flag_count = 10
+        backend = SQLBackend.custom(chain_spec, 666, 42, 2, flags, flag_count)
+        self.assertEqual(((42, 2), flags), backend.start())
+        self.assertEqual(((42, 2), flags), backend.get())
+        self.assertEqual((666, flags_target), backend.target())
+
+
 if __name__ == '__main__':
     unittest.main()

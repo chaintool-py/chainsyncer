@@ -115,7 +115,6 @@ class ThreadPoolHistorySyncer(HistorySyncer):
         pass
 
 
-    #def process(self, conn, block):
     def get(self, conn):
         if not self.running:
             raise SyncDone()

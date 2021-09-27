@@ -38,7 +38,9 @@ class BlockchainSyncFilter(SessionBase):
     count = Column(Integer)
 
 
-    def __init__(self, chain_sync, count=0, flags=None, digest=zero_digest):
+    def __init__(self, chain_sync, count=0, flags=None, digest=None):
+        if digest == None:
+            digest = zero_digest
         self.digest = digest
         self.count = count
 

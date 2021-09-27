@@ -12,7 +12,6 @@ from chainsyncer.error import NoBlockForYou
 logg = logging.getLogger().getChild(__name__)
 
 
-
 class MockConn:
     """Noop connection mocker.
 

@@ -1,5 +1,6 @@
 # standard imports
 import logging
+import uuid
 
 # local imports
 from .base import Backend
@@ -20,17 +21,36 @@ class MemBackend(Backend):
     :type target_block: int
     """
 
-    def __init__(self, chain_spec, object_id, target_block=None, block_height=0, tx_height=0, flags=0):
+    def __init__(self, chain_spec, object_id):
         super(MemBackend, self).__init__(object_id)
         self.chain_spec = chain_spec
-        self.block_height_offset = block_height
-        self.block_height_cursor = block_height
-        self.tx_height_offset = tx_height
-        self.tx_height_cursor = tx_height
-        self.block_height_target = target_block
         self.db_session = None
-        self.flags = flags
+        self.block_height_offset = 0
+        self.block_height_cursor = 0
+        self.tx_height_offset = 0
+        self.tx_height_cursor = 0
+        self.block_height_target = None
+        self.flags = 0
+        self.flags_start = 0
+        self.flags_target = 0
         self.filter_names = []
+
+
+    @staticmethod
+    def custom(chain_spec, target_block, block_offset=0, tx_offset=0, flags=0, flags_count=0, *args, **kwargs):
+        object_id = kwargs.get('object_id', str(uuid.uuid4()))
+        backend = MemBackend(chain_spec, object_id)
+        backend.block_height_offset = block_offset
+        backend.block_height_cursor = block_offset
+        backend.tx_height_offset = tx_offset
+        backend.tx_height_cursor = tx_offset
+        backend.block_height_target = target_block
+        backend.flags = flags
+        backend.flags_count = flags_count
+        backend.flags_start = flags
+        flags_target = (2 ** flags_count) - 1
+        backend.flags_target = flags_target
+        return backend
 
 
     def connect(self):
@@ -67,13 +87,22 @@ class MemBackend(Backend):
         return ((self.block_height_cursor, self.tx_height_cursor), self.flags)
 
 
+    def start(self):
+        """Get the initial syncer state
+
+        :rtype: tuple
+        :returns: block height / tx index tuple, and filter flags value
+        """
+        return ((self.block_height_offset, self.tx_height_offset), self.flags_start)
+
+
     def target(self):
         """Returns the syncer target.
 
         :rtype: tuple
         :returns: block height / tx index tuple
         """
-        return (self.block_height_target, self.flags)
+        return (self.block_height_target, self.flags_target)
 
 
     def register_filter(self, name):

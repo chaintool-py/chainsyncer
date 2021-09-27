@@ -149,6 +149,30 @@ class SQLBackend(Backend):
 
 
     @staticmethod
+    def custom(chain_spec, target_block, block_offset=0, tx_offset=0, flags=0, flag_count=0, *args, **kwargs):
+        """
+
+        :param flags: flags bit field
+        :type flags: bytes
+        :param flag_count: number of flags in bit field
+        :type flag_count: 
+        """
+        session = SessionBase.create_session()
+        o = BlockchainSync(str(chain_spec), block_offset, tx_offset, target_block)
+        session.add(o)
+        session.commit()
+        object_id = o.id
+  
+        of = BlockchainSyncFilter(o, flag_count, flags, kwargs.get('flags_digest'))
+        session.add(of)
+        session.commit()
+
+        session.close()
+
+        return SQLBackend(chain_spec, object_id)
+
+
+    @staticmethod
     def first(chain_spec):
         """Returns the model object of the most recent syncer in backend.
 
