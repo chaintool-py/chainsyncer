@@ -76,7 +76,6 @@ class ThreadPoolRangeHistorySyncer:
         for sync_range in self.ranges:
             task = ThreadPoolRangeTask(self.src_backend, sync_range, self.chain_interface, filters=self.filters)
             t = self.worker_pool.apply_async(task.start_loop, (0.1,))
-            print('result {}'.format(t.get()))
-
+            logg.debug('result of worker {}: {}'.format(t, t.get()))
         self.worker_pool.close()
         self.worker_pool.join()
