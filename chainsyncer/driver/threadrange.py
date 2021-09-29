@@ -55,7 +55,6 @@ class ThreadPoolRangeTask:
 class ThreadPoolRangeHistorySyncer:
 
     def __init__(self, thread_count, backend, chain_interface, pre_callback=None, block_callback=None, post_callback=None, runlevel_callback=None):
-        #super(ThreadPoolRangeHistorySyncer, self).__init__(backend, chain_interface)
         self.src_backend = backend
         self.thread_count = thread_count
         self.single_sync_offset = 0
