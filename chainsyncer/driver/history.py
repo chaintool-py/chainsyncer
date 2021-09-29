@@ -26,7 +26,6 @@ class HistorySyncer(HeadSyncer):
         if block_number == None:
             raise AttributeError('backend has no future target. Use HeadSyner instead')
         self.block_target = block_number
-        logg.debug('block target {}'.format(self.block_target))
 
 
     def get(self, conn):
@@ -44,7 +43,7 @@ class HistorySyncer(HeadSyncer):
             raise SyncDone(self.block_target)
         block_number = height[0]
         block_hash = []
-        o = self.chain_interface.block_by_number(block_number)
+        o = self.chain_interface.block_by_number(block_number, include_tx=True)
         try:
             r = conn.do(o)
         # TODO: Disambiguate whether error is temporary or permanent, if permanent, SyncDone should be raised, because a historical sync is attempted into the future

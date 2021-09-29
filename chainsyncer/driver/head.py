@@ -1,6 +1,12 @@
 # standard imports
 import logging
 
+# external imports
+from chainlib.eth.tx import (
+        transaction,
+        Tx,
+        )
+
 # local imports
 from chainsyncer.error import NoBlockForYou
 from .poll import BlockPollSyncer
@@ -28,15 +34,18 @@ class HeadSyncer(BlockPollSyncer):
         (pair, fltr) = self.backend.get()
         logg.debug('process block {} (backend {}:{})'.format(block, pair, fltr))
         i = pair[1] # set tx index from previous
-        tx = None
+        tx_src = None
         while True:
             # handle block objects regardless of whether the tx data is embedded or not
             try:
                 tx = block.tx(i)
             except AttributeError:
-                o = tx(block.txs[i])
+                o = transaction(block.txs[i])
                 r = conn.do(o)
-                tx = self.interface.tx_from_src(Tx.src_normalize(r), block=block)
+                tx_src = Tx.src_normalize(r)
+                tx = self.chain_interface.tx_from_src(tx_src, block=block)
+
+
             #except IndexError as e:
             #    logg.debug('index error syncer tx get {}'.format(e))
             #    break

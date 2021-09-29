@@ -8,8 +8,15 @@ import os
 # external imports
 from chainlib.chain import ChainSpec
 from chainlib.interface import ChainInterface
-from chainlib.eth.tx import receipt
-from chainlib.eth.block import block_by_number
+from chainlib.eth.tx import (
+        receipt,
+        Tx,
+        )
+from chainlib.eth.block import (
+        block_by_number,
+        Block,
+        )
+from potaahto.symbols import snake_and_camel
 
 # local imports
 from chainsyncer.db import dsn_from_config
@@ -28,6 +35,9 @@ class EthChainInterface(ChainInterface):
     def __init__(self):
         self._tx_receipt = receipt
         self._block_by_number = block_by_number
+        self._block_from_src = Block.from_src
+        self._tx_from_src = Tx.from_src
+        self._src_normalize = snake_and_camel
 
 
 class TestBase(unittest.TestCase):

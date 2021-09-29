@@ -9,8 +9,7 @@ from chainsyncer.error import (
         NoBlockForYou,
         )
 
-#logg = logging.getLogger(__name__)
-logg = logging.getLogger()
+logg = logging.getLogger(__name__)
 
 
 
@@ -32,6 +31,7 @@ class BlockPollSyncer(Syncer):
         """
         (pair, fltr) = self.backend.get()
         start_tx = pair[1]
+
 
         while self.running and Syncer.running_global:
             if self.pre_callback != None:
