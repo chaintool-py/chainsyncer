@@ -77,9 +77,11 @@ class TestThreadRange(TestBaseEth):
 
 
     def test_range_syncer_hello(self):
-        chain_spec = ChainSpec('evm', 'bloxberg', 8996, 'foo')
+        #chain_spec = ChainSpec('evm', 'bloxberg', 8996, 'foo')
+        chain_spec = ChainSpec('evm', 'foochain', 42)
         backend = MemBackend.custom(chain_spec, 20, 5, 3, 5, 10)
-        syncer = ThreadPoolRangeHistorySyncer(MockConn, 3, backend, self.interface)
+        #syncer = ThreadPoolRangeHistorySyncer(MockConn, 3, backend, self.interface)
+        syncer = ThreadPoolRangeHistorySyncer(3, backend, self.interface)
         syncer.loop(0.1, None)
 
 

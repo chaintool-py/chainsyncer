@@ -122,7 +122,7 @@ class TestInterrupt(TestBase):
     def test_filter_interrupt_memory(self):
         self.track_complete = True
         for vector in self.vectors:
-            self.backend = MemBackend(self.chain_spec, None, target_block=len(vector))
+            self.backend = MemBackend.custom(self.chain_spec, target_block=len(vector))
             self.assert_filter_interrupt(vector, self.interface)
 
     #TODO: implement flag lock in file backend

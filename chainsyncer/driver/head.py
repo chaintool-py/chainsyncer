@@ -6,6 +6,7 @@ from chainlib.eth.tx import (
         transaction,
         Tx,
         )
+from chainlib.error import RPCException
 
 # local imports
 from chainsyncer.error import NoBlockForYou
