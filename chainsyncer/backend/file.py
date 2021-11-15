@@ -54,8 +54,12 @@ class FileBackend(Backend):
     :param base_dir: Base directory to use for generation. Default is value of BACKEND_BASE_DIR
     :type base_dir: str 
     """
+    __warned = False
 
     def __init__(self, chain_spec, object_id, base_dir=BACKEND_BASE_DIR):
+        if not FileBackend.__warned:
+            logg.warning('file backend for chainsyncer is experimental and not yet guaranteed to handle interrupted filter execution.')
+            FileBackend.__warned = True
         super(FileBackend, self).__init__(object_id, flags_reversed=True)
         self.object_data_dir = data_dir_for(chain_spec, object_id, base_dir=base_dir)
 
@@ -392,6 +396,11 @@ class FileBackend(Backend):
         except FileNotFoundError:
             return entries
         return entries[len(entries)-1]
+
+
+    # n is zero-index of bit field
+    def begin_filter(self, n, base_dir=BACKEND_BASE_DIR):
+        pass
 
 
     # n is zero-index of bit field
