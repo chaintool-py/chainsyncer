@@ -1,0 +1,4 @@
+- 0.3.0
+	* Re-implement filter state handling on shep
+- 0.1.0
+	* Add deferred idle handling
