@@ -1,15 +1,17 @@
-# standard imporst
+# standard imports
 import unittest
 
 # external imports
-from shep import State
+from chainlib.chain import ChainSpec
 
 # local imports
-from chainsyncer.state import SyncState
-from chainsyncer.session import SyncSession
+from chainsyncer.backend.memory import MemBackend
+
+# testutil imports
+from tests.chainsyncer_base import TestBase
 
 
-class MockStore(State):
+class TestBasic(TestBase):
 
     def __init__(self, bits=0):
         super(MockStore, self).__init__(bits, check_alias=False) 
@@ -86,7 +88,6 @@ class TestSync(unittest.TestCase):
         b = b'\x0d' * 32
         fltr = MockFilter(name='foo', z=b)
         state.register(fltr)
-
 
 
 if __name__ == '__main__':
