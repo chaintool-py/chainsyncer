@@ -1,6 +1,9 @@
 # standard imports
 import unittest
 import hashlib
+import tempfile
+import shutil
+import logging
 
 # external imports
 from shep.state import State
@@ -8,7 +11,10 @@ from shep.state import State
 # local imports
 from chainsyncer.session import SyncSession
 from chainsyncer.state import SyncState
+from chainsyncer.store.fs import SyncFsStore
 
+logging.basicConfig(level=logging.DEBUG)
+logg = logging.getLogger()
 
 class MockStore(State):
 
@@ -41,6 +47,15 @@ class MockFilter:
 
 
 class TestSync(unittest.TestCase):
+
+    def setUp(self):
+        self.path = tempfile.mkdtemp()
+        self.store = SyncFsStore(self.path)
+
+
+    def tearDown(self):
+        shutil.rmtree(self.path)
+
 
     def test_basic(self):
         store = MockStore(6)
