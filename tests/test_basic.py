@@ -60,11 +60,7 @@ class TestSync(unittest.TestCase):
     def test_basic(self):
         store = MockStore(6)
         state = SyncState(store)
-        session = SyncSession(None, state)
-        self.assertTrue(session.is_default)
-        
-        session = SyncSession(None, state, session_id='foo')
-        self.assertFalse(session.is_default)
+        session = SyncSession(state)
 
 
     def test_sum(self):
@@ -91,7 +87,7 @@ class TestSync(unittest.TestCase):
     def test_session_start(self):
         store = MockStore(6)
         state = SyncState(store)
-        session = SyncSession(None, state)
+        session = SyncSession(state)
         session.start()
        
 

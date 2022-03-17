@@ -65,5 +65,12 @@ class TestFs(unittest.TestCase):
         self.assertFalse(store.first)
 
 
+    def test_store_resume(self):
+        store = SyncFsStore(self.path)
+        store.start(13)
+        self.assertTrue(store.first)
+
+
+
 if __name__ == '__main__':
     unittest.main()
