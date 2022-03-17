@@ -1,17 +1,16 @@
 # standard imports
 import unittest
+import hashlib
 
 # external imports
-from chainlib.chain import ChainSpec
+from shep.state import State
 
 # local imports
-from chainsyncer.backend.memory import MemBackend
-
-# testutil imports
-from tests.chainsyncer_base import TestBase
+from chainsyncer.session import SyncSession
+from chainsyncer.state import SyncState
 
 
-class TestBasic(TestBase):
+class MockStore(State):
 
     def __init__(self, bits=0):
         super(MockStore, self).__init__(bits, check_alias=False) 
