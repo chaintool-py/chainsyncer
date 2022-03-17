@@ -1,5 +1,8 @@
 # standard imports
 import hashlib
+import logging
+
+logg = logging.getLogger(__name__)
 
 
 class SyncState:
@@ -11,8 +14,20 @@ class SyncState:
         self.__syncs = {}
         self.synced = False
         self.connected = False
-        self.state_store.add('INTERRUPT')
+        self.state_store.add('DONE')
         self.state_store.add('LOCK')
+        self.state_store.add('INTERRUPT')
+        self.state_store.add('RESET')
+        self.state = self.state_store.state
+        self.put = self.state_store.put
+        self.set = self.state_store.set
+        self.next = self.state_store.next
+        self.move = self.state_store.move
+        self.unset = self.state_store.unset
+        self.from_name = self.state_store.from_name
+        self.state_store.sync()
+        self.all = self.state_store.all
+        self.started = False
 
 
     def __verify_sum(self, v):
@@ -30,6 +45,9 @@ class SyncState:
         self.digest += z
         s = fltr.common_name()
         self.state_store.add(s)
+        n = self.state_store.from_name(s)
+        logg.debug('add {} {} {}'.format(s, n, self))
+
 
 
     def sum(self):
@@ -53,9 +71,10 @@ class SyncState:
         self.connected = False
 
 
-    def lock(self):
-        pass
+    def start(self):
+        self.state_store.start()
+        self.started = True
 
 
-    def unlock(self):
-        pass
+    def get(self, k):
+        raise NotImplementedError()

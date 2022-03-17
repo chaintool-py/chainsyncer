@@ -1,12 +1,14 @@
 # standard imports
 import os
 import logging
+import hashlib
 
 # external imports
 from hexathon import add_0x
+from shep.state import State
 
 # local imports
-from chainsyncer.driver.history import HistorySyncer
+#from chainsyncer.driver.history import HistorySyncer
 from chainsyncer.error import NoBlockForYou
 
 logg = logging.getLogger().getChild(__name__)
@@ -67,42 +69,77 @@ class MockBlock:
         return MockTx(i, self.txs[i])
 
 
-class TestSyncer(HistorySyncer):
-    """Unittest extension of history syncer driver.
+class MockStore(State):
 
-    :param backend: Syncer backend
-    :type backend: chainsyncer.backend.base.Backend implementation
-    :param chain_interface: Chain interface
-    :type chain_interface: chainlib.interface.ChainInterface implementation
-    :param tx_counts: List of integer values defining how many mock transactions to generate per block. Mock blocks will be generated for each element in list.
-    :type tx_counts: list
-    """
+    def __init__(self, bits=0):
+        super(MockStore, self).__init__(bits, check_alias=False) 
 
-    def __init__(self, backend, chain_interface, tx_counts=[]):
-        self.tx_counts = tx_counts
-        super(TestSyncer, self).__init__(backend, chain_interface)
+    
+    def start(self):
+        pass
 
 
-    def get(self, conn):
-        """Implements the block getter of chainsyncer.driver.base.Syncer.
+class MockFilter:
 
-        :param conn: RPC connection
-        :type conn: chainlib.connection.RPCConnection
-        :raises NoBlockForYou: End of mocked block array reached
-        :rtype: chainsyncer.unittest.base.MockBlock
-        :returns: Mock block.
-        """
-        (pair, fltr) = self.backend.get()
-        (target_block, fltr) = self.backend.target()
-        block_height = pair[0]
+    def __init__(self, name, brk=False, z=None):
+        self.name = name
+        if z == None:
+            h = hashlib.sha256()
+            h.update(self.name.encode('utf-8'))
+            z = h.digest()
+        self.z = z
+        self.brk = brk
 
-        if block_height == target_block:
-            self.running = False
-            raise NoBlockForYou()
 
-        block_txs = []
-        if block_height < len(self.tx_counts):
-            for i in range(self.tx_counts[block_height]):
-                block_txs.append(add_0x(os.urandom(32).hex()))
-     
-        return MockBlock(block_height, block_txs)
+    def sum(self):
+        return self.z
+
+
+    def common_name(self):
+        return self.name 
+
+
+    def filter(self, conn, block, tx):
+        return self.brk
+
+
+
+#class TestSyncer(HistorySyncer):
+#    """Unittest extension of history syncer driver.
+#
+#    :param backend: Syncer backend
+#    :type backend: chainsyncer.backend.base.Backend implementation
+#    :param chain_interface: Chain interface
+#    :type chain_interface: chainlib.interface.ChainInterface implementation
+#    :param tx_counts: List of integer values defining how many mock transactions to generate per block. Mock blocks will be generated for each element in list.
+#    :type tx_counts: list
+#    """
+#
+#    def __init__(self, backend, chain_interface, tx_counts=[]):
+#        self.tx_counts = tx_counts
+#        super(TestSyncer, self).__init__(backend, chain_interface)
+#
+#
+#    def get(self, conn):
+#        """Implements the block getter of chainsyncer.driver.base.Syncer.
+#
+#        :param conn: RPC connection
+#        :type conn: chainlib.connection.RPCConnection
+#        :raises NoBlockForYou: End of mocked block array reached
+#        :rtype: chainsyncer.unittest.base.MockBlock
+#        :returns: Mock block.
+#        """
+#        (pair, fltr) = self.backend.get()
+#        (target_block, fltr) = self.backend.target()
+#        block_height = pair[0]
+#
+#        if block_height == target_block:
+#            self.running = False
+#            raise NoBlockForYou()
+#
+#        block_txs = []
+#        if block_height < len(self.tx_counts):
+#            for i in range(self.tx_counts[block_height]):
+#                block_txs.append(add_0x(os.urandom(32).hex()))
+#     
+#        return MockBlock(block_height, block_txs)

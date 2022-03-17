@@ -6,31 +6,91 @@ import logging
 # external imports
 from shep.store.file import SimpleFileStoreFactory
 from shep.persist import PersistedState
+from shep.error import StateInvalid
 
 # local imports 
 from chainsyncer.state import SyncState
-
+from chainsyncer.error import (
+        LockError,
+        FilterDone,
+        InterruptError,
+        IncompleteFilterError,
+        )
 logg = logging.getLogger(__name__)
 
 
+# NOT thread safe
 class SyncFsItem:
     
-    def __init__(self, offset, target, sync_state, filter_state, started=False):
+    def __init__(self, offset, target, sync_state, filter_state, started=False, ignore_invalid=False):
         self.offset = offset
         self.target = target
         self.sync_state = sync_state
         self.filter_state = filter_state
-        s = str(offset)
+        self.state_key = str(offset)
         match_state = self.sync_state.NEW
         if started:
             match_state = self.sync_state.SYNC
-        v = self.sync_state.get(s)
+        v = self.sync_state.get(self.state_key)
         self.cursor = int.from_bytes(v, 'big')
 
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') and not ignore_invalid:
+            raise LockError(s)
 
-    def next(self):
-        pass
+        self.count = len(self.filter_state.all(pure=True)) - 3
+        self.skip_filter = False
+        if self.count == 0:
+            self.skip_filter = True
+        else:
+            self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
 
+
+    def __check_done(self):
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('INTERRUPT') > 0:
+            raise InterruptError(self.state_key)
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') > 0:
+            raise FilterDone(self.state_key)
+
+
+    def reset(self):
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
+            raise LockError('reset attempt on {} when state locked'.format(self.state_key))
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') == 0:
+            raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
+        self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
+        
+
+    def advance(self):
+        if self.skip_filter:
+            raise FilterDone()
+        self.__check_done()
+
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
+            raise LockError('advance attempt on {} when state locked'.format(self.state_key))
+        done = False
+        try:
+            self.filter_state.next(self.state_key)
+        except StateInvalid:
+            done = True
+        if done:
+            self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))
+            raise FilterDone()
+        self.filter_state.set(self.state_key, self.filter_state.from_name('LOCK'))
+       
+
+    def release(self, interrupt=False):
+        if self.skip_filter:
+            raise FilterDone()
+        if interrupt:
+            self.filter_state.set(self.state_key, self.filter_state.from_name('INTERRUPT'))
+            self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))
+            return
+
+        state = self.filter_state.state(self.state_key)
+        if state & self.filter_state.from_name('LOCK') == 0:
+            raise LockError('release attempt on {} when state unlocked'.format(self.state_key))
+        self.filter_state.unset(self.state_key, self.filter_state.from_name('LOCK'))
+        
 
     def __str__(self):
         return 'syncitem offset {} target {} cursor {}'.format(self.offset, self.target, self.cursor)
@@ -46,6 +106,7 @@ class SyncFsStore:
         self.first = False
         self.target = None
         self.items = {}
+        self.started = False
 
         default_path = os.path.join(base_path, 'default')
 
@@ -76,10 +137,10 @@ class SyncFsStore:
 
         base_filter_path = os.path.join(self.session_path, 'filter')
         factory = SimpleFileStoreFactory(base_filter_path, binary=True)
-        filter_state_backend = PersistedState(factory, 0)
+        filter_state_backend = PersistedState(factory.add, 0, check_alias=False)
         self.filter_state = SyncState(filter_state_backend)
         self.register = self.filter_state.register
-    
+   
 
     def __create_path(self, base_path, default_path, session_id=None):
         logg.debug('fs store path {} does not exist, creating'.format(self.session_path))
@@ -144,12 +205,22 @@ class SyncFsStore:
         if self.first:
             block_number = offset
             block_number_bytes = block_number.to_bytes(4, 'big')
-            self.state.put(str(block_number), block_number_bytes)
+            block_number_str = str(block_number)
+            self.state.put(block_number_str, block_number_bytes)
+            self.filter_state.put(block_number_str)
+            o = SyncFsItem(block_number, target, self.state, self.filter_state)
+            self.items[block_number] = o
         elif offset > 0:
             logg.warning('block number argument {} for start ignored for already initiated sync {}'.format(offset, self.session_id))
+        self.started = True
+
 
     def stop(self):
         if self.target == 0:
             block_number = self.height + 1
             block_number_bytes = block_number.to_bytes(4, 'big')
             self.state.put(str(block_number), block_number_bytes)
+
+
+    def get(self, k):
+        return self.items[k]

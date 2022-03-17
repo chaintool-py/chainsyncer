@@ -1,49 +1,20 @@
 # standard imports
 import unittest
-import hashlib
 import tempfile
 import shutil
 import logging
-
-# external imports
-from shep.state import State
 
 # local imports
 from chainsyncer.session import SyncSession
 from chainsyncer.state import SyncState
 from chainsyncer.store.fs import SyncFsStore
+from chainsyncer.unittest import (
+        MockStore,
+        MockFilter,
+        )
 
 logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger()
-
-class MockStore(State):
-
-    def __init__(self, bits=0):
-        super(MockStore, self).__init__(bits, check_alias=False) 
-
-
-class MockFilter:
-
-    def __init__(self, name, brk=False, z=None):
-        self.name = name
-        if z == None:
-            h = hashlib.sha256()
-            h.update(self.name.encode('utf-8'))
-            z = h.digest()
-        self.z = z
-        self.brk = brk
-
-
-    def sum(self):
-        return self.z
-
-
-    def common_name(self):
-        return self.name 
-
-
-    def filter(self, conn, block, tx):
-        return self.brk
 
 
 class TestSync(unittest.TestCase):
@@ -64,7 +35,7 @@ class TestSync(unittest.TestCase):
 
 
     def test_sum(self):
-        store = MockStore(4)
+        store = MockStore(6)
         state = SyncState(store)
 
         b = b'\x2a' * 32

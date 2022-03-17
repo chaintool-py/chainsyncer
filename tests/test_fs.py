@@ -8,6 +8,13 @@ import os
 
 # local imports
 from chainsyncer.store.fs import SyncFsStore
+from chainsyncer.session import SyncSession
+from chainsyncer.error import (
+        LockError,
+        FilterDone,
+        IncompleteFilterError,
+        )
+from chainsyncer.unittest import MockFilter
 
 logging.basicConfig(level=logging.DEBUG)
 logg = logging.getLogger()
@@ -69,7 +76,96 @@ class TestFs(unittest.TestCase):
         store = SyncFsStore(self.path)
         store.start(13)
         self.assertTrue(store.first)
+        # todo not done
 
+
+    def test_sync_process_nofilter(self):
+        store = SyncFsStore(self.path)
+        session = SyncSession(store)
+        session.start()
+        o = session.get(0)
+        with self.assertRaises(FilterDone):
+            o.advance()
+
+
+    def test_sync_process_onefilter(self):
+        store = SyncFsStore(self.path)
+        session = SyncSession(store)
+
+        fltr_one = MockFilter('foo')
+        session.register(fltr_one)
+
+        session.start()
+        o = session.get(0)
+        o.advance()
+        o.release()
+
+
+    def test_sync_process_outoforder(self):
+        store = SyncFsStore(self.path)
+        session = SyncSession(store)
+
+        fltr_one = MockFilter('foo')
+        session.register(fltr_one)
+        fltr_two = MockFilter('two')
+        session.register(fltr_two)
+
+        session.start()
+        o = session.get(0)
+        o.advance()
+        with self.assertRaises(LockError):
+            o.advance()
+
+        o.release()
+        with self.assertRaises(LockError):
+            o.release()
+
+        o.advance()
+        o.release()
+
+
+    def test_sync_process_interrupt(self):
+        store = SyncFsStore(self.path)
+        session = SyncSession(store)
+
+        fltr_one = MockFilter('foo')
+        session.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        session.register(fltr_two)
+
+        session.start()
+        o = session.get(0)
+        o.advance()
+        o.release(interrupt=True)
+        with self.assertRaises(FilterDone):
+            o.advance()
+
+
+    def test_sync_process_reset(self):
+        store = SyncFsStore(self.path)
+        session = SyncSession(store)
+
+        fltr_one = MockFilter('foo')
+        session.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        session.register(fltr_two)
+
+        session.start()
+        o = session.get(0)
+        o.advance()
+        with self.assertRaises(LockError):
+            o.reset()
+        o.release()
+        with self.assertRaises(IncompleteFilterError):
+            o.reset()
+
+        o.advance()
+        o.release()
+
+        with self.assertRaises(FilterDone):
+            o.advance()
+
+        o.reset()
 
 
 if __name__ == '__main__':
