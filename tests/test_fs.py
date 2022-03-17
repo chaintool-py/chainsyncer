@@ -13,6 +13,7 @@ from chainsyncer.error import (
         LockError,
         FilterDone,
         IncompleteFilterError,
+        SyncDone,
         )
 from chainsyncer.unittest import MockFilter
 
@@ -24,6 +25,7 @@ class TestFs(unittest.TestCase):
 
     def setUp(self):
         self.path = tempfile.mkdtemp()
+
 
     def tearDown(self):
         shutil.rmtree(self.path)
@@ -166,6 +168,23 @@ class TestFs(unittest.TestCase):
             o.advance()
 
         o.reset()
+
+    
+    def test_sync_process_done(self):
+        store = SyncFsStore(self.path)
+        session = SyncSession(store)
+
+        fltr_one = MockFilter('foo')
+        session.register(fltr_one)
+
+        session.start(target=0)
+        o = session.get(0)
+        o.advance()
+        o.release()
+        with self.assertRaises(FilterDone):
+            o.advance()
+        with self.assertRaises(SyncDone):
+            o.reset()
 
 
 if __name__ == '__main__':

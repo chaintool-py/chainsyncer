@@ -5,6 +5,7 @@ import logging
 logg = logging.getLogger(__name__)
 
 
+# TODO: properly clarify interface shared with syncfsstore, move to filter module?
 class SyncState:
 
     def __init__(self, state_store):
@@ -61,7 +62,8 @@ class SyncState:
     def connect(self):
         if not self.synced:
             for v in self.state_store.all():
-                self.state_store.sync(v)
+                k = self.state_store.from_name(v)
+                self.state_store.sync(k)
                 self.__syncs[v] = True
             self.synced = True
         self.connected = True
@@ -71,10 +73,14 @@ class SyncState:
         self.connected = False
 
 
-    def start(self):
-        self.state_store.start()
+    def start(self, offset=0, target=-1):
+        self.state_store.start(offset=offset, target=target)
         self.started = True
 
 
     def get(self, k):
-        raise NotImplementedError()
+        return None
+
+
+    def next_item(self):
+        return None

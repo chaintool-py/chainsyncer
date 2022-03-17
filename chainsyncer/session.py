@@ -1,15 +1,19 @@
 # standard imports
 import uuid
 
+# local imports
+from chainsyncer.error import FilterDone
+
 
 class SyncSession:
 
     def __init__(self, session_store):
         self.session_store = session_store
         self.filters = []
-        self.start = self.session_store.start
-        self.get = self.session_store.get
         self.started = self.session_store.started
+        self.get = self.session_store.get
+        self.next = self.session_store.next_item
+        self.item = None
 
 
     def register(self, fltr):
@@ -18,17 +22,24 @@ class SyncSession:
         self.session_store.register(fltr)
         self.filters.append(fltr)
 
+    
+    def start(self, offset=0, target=-1):
+        self.session_store.start(offset=offset, target=target)
+        self.item = self.session_store.next_item()
+
 
     def filter(self, conn, block, tx):
-        self.sync_state.connect()
-        for fltr in filters:
+        self.session_store.connect()
+        for fltr in self.filters:
             try:
-                self.sync_start.advance()
+                self.item.advance()
             except FilterDone:
                 break
-            interrupt = fltr(conn, block, tx)
-            try:
-                self.sync_start.release(interrupt=interrupt)
-            except FilterDone:
-                break
-        self.sync_start.disconnect()
+            interrupt = fltr.filter(conn, block, tx)
+            self.item.release(interrupt=interrupt)
+        try:
+            self.item.advance()
+            raise BackendError('filter state inconsitent with filter list')
+        except FilterDone:
+            self.item.reset()
+        self.session_store.disconnect()

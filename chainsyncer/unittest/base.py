@@ -75,7 +75,7 @@ class MockStore(State):
         super(MockStore, self).__init__(bits, check_alias=False) 
 
     
-    def start(self):
+    def start(self, offset=0, target=-1):
         pass
 
 
@@ -89,6 +89,7 @@ class MockFilter:
             z = h.digest()
         self.z = z
         self.brk = brk
+        self.contents = []
 
 
     def sum(self):
@@ -100,6 +101,7 @@ class MockFilter:
 
 
     def filter(self, conn, block, tx):
+        self.contents.append((block.number, tx.index, tx.hash,))
         return self.brk
 
 

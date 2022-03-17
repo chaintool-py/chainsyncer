@@ -15,6 +15,7 @@ from chainsyncer.error import (
         FilterDone,
         InterruptError,
         IncompleteFilterError,
+        SyncDone,
         )
 logg = logging.getLogger(__name__)
 
@@ -58,6 +59,15 @@ class SyncFsItem:
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') == 0:
             raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
         self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
+
+        v = self.sync_state.get(self.state_key)
+        block_number = int.from_bytes(v, 'big')
+        block_number += 1
+        if self.target >= 0 and block_number > self.target:
+            raise SyncDone(self.target)
+
+        v = block_number.to_bytes(4, 'big')
+        self.sync_state.replace(self.state_key, v)
         
 
     def advance(self):
@@ -82,6 +92,7 @@ class SyncFsItem:
         if self.skip_filter:
             raise FilterDone()
         if interrupt:
+            self.filter_state.unset(self.state_key, self.filter_state.from_name('LOCK'))
             self.filter_state.set(self.state_key, self.filter_state.from_name('INTERRUPT'))
             self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))
             return
@@ -106,6 +117,7 @@ class SyncFsStore:
         self.first = False
         self.target = None
         self.items = {}
+        self.item_keys = []
         self.started = False
 
         default_path = os.path.join(base_path, 'default')
@@ -183,6 +195,7 @@ class SyncFsStore:
                 item_target = thresholds[i+1] 
             o = SyncFsItem(block_number, item_target, self.state, self.filter_state, started=True)
             self.items[block_number] = o
+            self.item_keys.append(block_number)
             logg.info('added {}'.format(o))
 
         fp = os.path.join(self.session_path, str(target))
@@ -198,8 +211,10 @@ class SyncFsStore:
         f.close()
         self.target = int(v)
 
+        logg.debug('target {}'.format(self.target))
 
-    def start(self, offset=0, target=0):
+
+    def start(self, offset=0, target=-1):
         self.__load(target)
 
         if self.first:
@@ -210,9 +225,12 @@ class SyncFsStore:
             self.filter_state.put(block_number_str)
             o = SyncFsItem(block_number, target, self.state, self.filter_state)
             self.items[block_number] = o
+            self.item_keys.append(block_number)
         elif offset > 0:
             logg.warning('block number argument {} for start ignored for already initiated sync {}'.format(offset, self.session_id))
         self.started = True
+
+        self.item_keys.sort()
 
 
     def stop(self):
@@ -224,3 +242,19 @@ class SyncFsStore:
 
     def get(self, k):
         return self.items[k]
+
+
+    def next_item(self):
+        try:
+            k = self.item_keys.pop(0)
+        except IndexError:
+            return None
+        return self.items[k]
+
+
+    def connect(self):
+        self.filter_state.connect()
+
+
+    def disconnect(self):
+        self.filter_state.disconnect()
