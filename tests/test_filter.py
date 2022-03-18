@@ -31,7 +31,6 @@ class TestFilter(unittest.TestCase):
         self.path = tempfile.mkdtemp()
         self.store = SyncFsStore(self.path)
         self.session = SyncSession(self.store)
-        self.session.start()
         self.conn = MockConn()
 
 
@@ -44,6 +43,8 @@ class TestFilter(unittest.TestCase):
         self.store.register(fltr_one)
         fltr_two = MockFilter('bar')
         self.store.register(fltr_two)
+
+        self.session.start()
 
         tx_hash = os.urandom(32).hex()
         tx = MockTx(42, tx_hash)
@@ -60,6 +61,8 @@ class TestFilter(unittest.TestCase):
         self.store.register(fltr_one)
         fltr_two = MockFilter('bar')
         self.store.register(fltr_two)
+
+        self.session.start()
 
         tx_hash = os.urandom(32).hex()
         tx = MockTx(42, tx_hash)

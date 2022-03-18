@@ -26,16 +26,10 @@ class SyncSession:
     def filter(self, conn, block, tx):
         self.session_store.connect()
         for fltr in self.filters:
-            try:
-                self.item.advance()
-            except FilterDone:
-                break
-            interrupt = fltr.filter(conn, block, tx)
-            self.item.release(interrupt=interrupt)
-        try:
             self.item.advance()
-            raise BackendError('filter state inconsitent with filter list')
-        except FilterDone:
-            self.item.reset()
+            interrupt = fltr.filter(conn, block, tx)
+            if not self.item.release(interrupt=interrupt):
+                break
+        self.item.reset()
         self.next()
         self.session_store.disconnect()

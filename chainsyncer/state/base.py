@@ -19,12 +19,14 @@ class SyncState:
         self.state_store.add('LOCK')
         self.state_store.add('INTERRUPT')
         self.state_store.add('RESET')
+
         self.state = self.state_store.state
         self.put = self.state_store.put
         self.set = self.state_store.set
         self.next = self.state_store.next
         self.move = self.state_store.move
         self.unset = self.state_store.unset
+        self.peek = self.state_store.peek
         self.from_name = self.state_store.from_name
         self.state_store.sync()
         self.all = self.state_store.all

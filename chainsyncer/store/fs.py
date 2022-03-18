@@ -82,6 +82,10 @@ class SyncFsItem:
         self.sync_state.replace(self.state_key, v)
 
 
+    def __find_advance(self):
+        v = self.filter_state.state(self.state_key)
+
+
     def advance(self):
         if self.skip_filter:
             raise FilterDone()
@@ -95,24 +99,30 @@ class SyncFsItem:
         except StateInvalid:
             done = True
         if done:
-            self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))
             raise FilterDone()
         self.filter_state.set(self.state_key, self.filter_state.from_name('LOCK'))
        
 
     def release(self, interrupt=False):
         if self.skip_filter:
-            raise FilterDone()
+            return False
         if interrupt:
             self.filter_state.unset(self.state_key, self.filter_state.from_name('LOCK'))
             self.filter_state.set(self.state_key, self.filter_state.from_name('INTERRUPT'))
             self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))
-            return
+            return False
 
         state = self.filter_state.state(self.state_key)
         if state & self.filter_state.from_name('LOCK') == 0:
             raise LockError('release attempt on {} when state unlocked'.format(self.state_key))
         self.filter_state.unset(self.state_key, self.filter_state.from_name('LOCK'))
+        try:
+            c = self.filter_state.peek(self.state_key)
+            logg.debug('peeked {}'.format(c))
+        except StateInvalid:
+            self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))
+            return False
+        return True
         
 
     def __str__(self):
