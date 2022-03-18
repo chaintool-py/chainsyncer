@@ -95,7 +95,7 @@ class TestFs(unittest.TestCase):
         session = SyncSession(store)
 
         fltr_one = MockFilter('foo')
-        session.register(fltr_one)
+        store.register(fltr_one)
 
         session.start()
         o = session.get(0)
@@ -108,9 +108,9 @@ class TestFs(unittest.TestCase):
         session = SyncSession(store)
 
         fltr_one = MockFilter('foo')
-        session.register(fltr_one)
+        store.register(fltr_one)
         fltr_two = MockFilter('two')
-        session.register(fltr_two)
+        store.register(fltr_two)
 
         session.start()
         o = session.get(0)
@@ -131,9 +131,9 @@ class TestFs(unittest.TestCase):
         session = SyncSession(store)
 
         fltr_one = MockFilter('foo')
-        session.register(fltr_one)
+        store.register(fltr_one)
         fltr_two = MockFilter('bar')
-        session.register(fltr_two)
+        store.register(fltr_two)
 
         session.start()
         o = session.get(0)
@@ -148,9 +148,9 @@ class TestFs(unittest.TestCase):
         session = SyncSession(store)
 
         fltr_one = MockFilter('foo')
-        session.register(fltr_one)
+        store.register(fltr_one)
         fltr_two = MockFilter('bar')
-        session.register(fltr_two)
+        store.register(fltr_two)
 
         session.start()
         o = session.get(0)
@@ -175,7 +175,7 @@ class TestFs(unittest.TestCase):
         session = SyncSession(store)
 
         fltr_one = MockFilter('foo')
-        session.register(fltr_one)
+        store.register(fltr_one)
 
         session.start(target=0)
         o = session.get(0)

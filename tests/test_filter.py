@@ -41,9 +41,9 @@ class TestFilter(unittest.TestCase):
 
     def test_filter_basic(self):
         fltr_one = MockFilter('foo')
-        self.session.register(fltr_one)
+        self.store.register(fltr_one)
         fltr_two = MockFilter('bar')
-        self.session.register(fltr_two)
+        self.store.register(fltr_two)
 
         tx_hash = os.urandom(32).hex()
         tx = MockTx(42, tx_hash)
@@ -57,9 +57,9 @@ class TestFilter(unittest.TestCase):
 
     def test_filter_interrupt(self):
         fltr_one = MockFilter('foo', brk=True)
-        self.session.register(fltr_one)
+        self.store.register(fltr_one)
         fltr_two = MockFilter('bar')
-        self.session.register(fltr_two)
+        self.store.register(fltr_two)
 
         tx_hash = os.urandom(32).hex()
         tx = MockTx(42, tx_hash)

@@ -84,3 +84,7 @@ class SyncState:
 
     def next_item(self):
         return None
+
+
+    def filters(self):
+        return []

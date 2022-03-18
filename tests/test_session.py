@@ -43,7 +43,7 @@ class TestFilter(unittest.TestCase):
         session = SyncSession(self.store)
         session.start(target=1)
         fltr_one = MockFilter('foo')
-        session.register(fltr_one)
+        self.store.register(fltr_one)
 
         tx_hash = os.urandom(32).hex()
         tx = MockTx(42, tx_hash)

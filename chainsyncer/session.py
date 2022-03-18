@@ -14,13 +14,14 @@ class SyncSession:
         self.get = self.session_store.get
         self.next = self.session_store.next_item
         self.item = None
+        self.filters = self.session_store.filters
 
 
-    def register(self, fltr):
-        if self.started:
-            raise RuntimeError('filters cannot be changed after syncer start')
-        self.session_store.register(fltr)
-        self.filters.append(fltr)
+#    def register(self, fltr):
+#        if self.started:
+#            raise RuntimeError('filters cannot be changed after syncer start')
+#        self.session_store.register(fltr)
+#        self.filters.append(fltr)
 
     
     def start(self, offset=0, target=-1):

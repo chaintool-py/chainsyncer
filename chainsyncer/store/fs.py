@@ -151,8 +151,13 @@ class SyncFsStore:
         factory = SimpleFileStoreFactory(base_filter_path, binary=True)
         filter_state_backend = PersistedState(factory.add, 0, check_alias=False)
         self.filter_state = SyncState(filter_state_backend)
-        self.register = self.filter_state.register
+        self.filters = []
    
+
+    def register(self, fltr):
+        self.filters.append(fltr)
+        self.filter_state.register(fltr)
+
 
     def __create_path(self, base_path, default_path, session_id=None):
         logg.debug('fs store path {} does not exist, creating'.format(self.session_path))
