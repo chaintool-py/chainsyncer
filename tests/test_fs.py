@@ -183,8 +183,9 @@ class TestFs(unittest.TestCase):
         o.release()
         with self.assertRaises(FilterDone):
             o.advance()
+        o.reset()
         with self.assertRaises(SyncDone):
-            o.reset()
+            o.next(advance_block=True)
 
 
 if __name__ == '__main__':

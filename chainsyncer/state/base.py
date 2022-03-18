@@ -47,8 +47,7 @@ class SyncState:
         s = fltr.common_name()
         self.state_store.add(s)
         n = self.state_store.from_name(s)
-        logg.debug('add {} {} {}'.format(s, n, self))
-
+        logg.debug('add filter {} {} {}'.format(s, n, self))
 
 
     def sum(self):

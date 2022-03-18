@@ -16,17 +16,11 @@ class SyncSession:
         self.item = None
         self.filters = self.session_store.filters
 
-
-#    def register(self, fltr):
-#        if self.started:
-#            raise RuntimeError('filters cannot be changed after syncer start')
-#        self.session_store.register(fltr)
-#        self.filters.append(fltr)
-
     
     def start(self, offset=0, target=-1):
         self.session_store.start(offset=offset, target=target)
         self.item = self.session_store.next_item()
+        return self.item
 
 
     def filter(self, conn, block, tx):
@@ -43,4 +37,5 @@ class SyncSession:
             raise BackendError('filter state inconsitent with filter list')
         except FilterDone:
             self.item.reset()
+        self.next()
         self.session_store.disconnect()

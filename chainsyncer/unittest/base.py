@@ -10,6 +10,7 @@ from shep.state import State
 # local imports
 #from chainsyncer.driver.history import HistorySyncer
 from chainsyncer.error import NoBlockForYou
+from chainsyncer.driver import SyncDriver
 
 logg = logging.getLogger().getChild(__name__)
 
@@ -104,6 +105,29 @@ class MockFilter:
         self.contents.append((block.number, tx.index, tx.hash,))
         return self.brk
 
+
+class MockDriver(SyncDriver):
+
+    def __init__(self, store, offset=0, target=-1):
+        super(MockDriver, self).__init__(store, offset=offset, target=target)
+        self.blocks = {}
+
+
+    def add_block(self, block):
+        self.blocks[block.number] = block
+
+
+    def get(self, conn, item):
+        return self.blocks[item.cursor]
+
+
+    def process(self, conn, item, block, tx_start):
+        i = tx_start
+        while True:
+            tx = block.tx(i)
+            self.process_single(conn, block, tx)
+            item.next()
+            i += 1
 
 
 #class TestSyncer(HistorySyncer):

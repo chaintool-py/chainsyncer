@@ -1,6 +1,7 @@
 # standard imports
 import logging
 import time
+import signal
 
 # local imports
 from chainsyncer.error import (
@@ -17,8 +18,18 @@ NS_DIV = 1000000000
 class SyncDriver:
 
     running_global = True
+    """If set to false syncer will terminate polling loop."""
+    yield_delay=0.005
+    """Delay between each processed block."""
+    signal_request = [signal.SIGINT, signal.SIGTERM]
+    """Signals to catch to request shutdown."""
+    signal_set = False
+    """Whether shutdown signal has been received."""
+    name = 'base'
+    """Syncer name, to be overriden for each extended implementation."""
 
-    def __init__(self, conn, store, pre_callback=None, post_callback=None, block_callback=None, idle_callback=None):
+
+    def __init__(self, store, offset=0, target=-1, pre_callback=None, post_callback=None, block_callback=None, idle_callback=None):
         self.store = store
         self.running = True
         self.pre_callback = pre_callback
@@ -27,7 +38,7 @@ class SyncDriver:
         self.idle_callback = idle_callback
         self.last_start = 0
         self.clock_id = time.CLOCK_MONOTONIC_RAW
-        self.session = SyncSession(self.store)
+        self.store.start(offset=offset, target=target)
 
 
     def __sig_terminate(self, sig, frame):
@@ -43,15 +54,16 @@ class SyncDriver:
         self.running = False
 
 
-    def run(self):
+    def run(self, conn):
         while self.running_global:
-            item = self.store.next_item()
+            self.session = SyncSession(self.store)
+            item = self.session.start()
             logg.debug('item {}'.format(item))
             if item == None:
                 self.running = False
                 self.running_global = False
                 break
-            self.loop(item)
+            self.loop(conn, item)
 
 
     def idle(self, interval):
@@ -80,20 +92,18 @@ class SyncDriver:
         time.sleep(interval)
 
 
-    def loop(self, item):
+    def loop(self, conn, item):
+        tx_start = item.tx_cursor
         while self.running and SyncDriver.running_global:
             self.last_start = time.clock_gettime_ns(self.clock_id)
             if self.pre_callback != None:
                 self.pre_callback()
             while True and self.running:
-                if start_tx > 0:
-                    start_tx -= 1
-                    continue
                 try:
-                    block = self.get(conn)
+                    block = self.get(conn, item)
                 except SyncDone as e:
                     logg.info('all blocks sumitted for processing: {}'.format(e))
-                    return self.backend.get()
+                    return
                 except NoBlockForYou as e:
                     break
                 if self.block_callback != None:
@@ -101,21 +111,22 @@ class SyncDriver:
 
                 last_block = block
                 try:
-                    self.process(conn, block)
+                    self.process(conn, item, block, tx_start)
                 except IndexError:
-                    self.backend.set(block.number + 1, 0)
-                start_tx = 0
+                    item.next(advance_block=True)
+                tx_start = 0
                 time.sleep(self.yield_delay)
             if self.post_callback != None:
                 self.post_callback()
 
             self.idle(interval)
 
+
     def process_single(self, conn, block, tx):
         self.session.filter(conn, block, tx)
 
 
-    def process(self, conn, block):
+    def process(self, conn, block, tx_start):
         raise NotImplementedError()
 
 

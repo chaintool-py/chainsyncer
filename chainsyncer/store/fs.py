@@ -33,7 +33,8 @@ class SyncFsItem:
         if started:
             match_state = self.sync_state.SYNC
         v = self.sync_state.get(self.state_key)
-        self.cursor = int.from_bytes(v, 'big')
+        self.cursor = int.from_bytes(v[:4], 'big')
+        self.tx_cursor = int.from_bytes(v[4:], 'big')
 
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') and not ignore_invalid:
             raise LockError(s)
@@ -60,15 +61,26 @@ class SyncFsItem:
             raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
         self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
 
+        
+    def next(self, advance_block=False):
         v = self.sync_state.get(self.state_key)
-        block_number = int.from_bytes(v, 'big')
-        block_number += 1
-        if self.target >= 0 and block_number > self.target:
-            raise SyncDone(self.target)
+
+        block_number = int.from_bytes(v[:4], 'big')
+        tx_index = int.from_bytes(v[4:], 'big')
+        if advance_block:
+            block_number += 1
+            tx_index = 0
+            if self.target >= 0 and block_number > self.target:
+                raise SyncDone(self.target)
+        else:
+            tx_index += 1
+
+        self.cursor = block_number
+        self.tx_cursor = tx_index
 
         v = block_number.to_bytes(4, 'big')
         self.sync_state.replace(self.state_key, v)
-        
+
 
     def advance(self):
         if self.skip_filter:
@@ -175,7 +187,6 @@ class SyncFsStore:
 
 
     def __load(self, target):
-        
         self.state.sync(self.state.NEW)
         self.state.sync(self.state.SYNC)
 
@@ -220,13 +231,18 @@ class SyncFsStore:
 
 
     def start(self, offset=0, target=-1):
+        if self.started:
+            return
+
         self.__load(target)
 
         if self.first:
             block_number = offset
-            block_number_bytes = block_number.to_bytes(4, 'big')
+            state_bytes = block_number.to_bytes(4, 'big')
+            tx_index = 0
+            state_bytes += tx_index.to_bytes(4, 'big')
             block_number_str = str(block_number)
-            self.state.put(block_number_str, block_number_bytes)
+            self.state.put(block_number_str, state_bytes)
             self.filter_state.put(block_number_str)
             o = SyncFsItem(block_number, target, self.state, self.filter_state)
             self.items[block_number] = o
@@ -239,10 +255,12 @@ class SyncFsStore:
 
 
     def stop(self):
-        if self.target == 0:
-            block_number = self.height + 1
-            block_number_bytes = block_number.to_bytes(4, 'big')
-            self.state.put(str(block_number), block_number_bytes)
+#        if self.target == 0:
+#            block_number = self.height + 1
+#            block_number_bytes = block_number.to_bytes(4, 'big')
+#            block_number_bytes = block_number.to_bytes(4, 'big')
+#            self.state.put(str(block_number), block_number_bytes)
+        pass
 
 
     def get(self, k):
