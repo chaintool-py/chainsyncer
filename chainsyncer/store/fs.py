@@ -83,6 +83,7 @@ class SyncFsItem:
             block_number += 1
             tx_index = 0
             if self.target >= 0 and block_number > self.target:
+                self.sync_state.move(self.state_key, self.sync_state.DONE)
                 raise SyncDone(self.target)
         else:
             tx_index += 1
@@ -186,7 +187,7 @@ class SyncFsStore:
         factory = SimpleFileStoreFactory(base_filter_path, binary=True)
         filter_state_backend = PersistedState(factory.add, 0, check_alias=False)
         self.filter_state = SyncState(filter_state_backend)
-        self.filters = []
+        self.filters = [] # used by SyncSession
    
 
     def register(self, fltr):

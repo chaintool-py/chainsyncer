@@ -216,6 +216,29 @@ class TestFs(unittest.TestCase):
         store = SyncFsStore(self.path, session_id='foo')
         store.start()
         o = store.get(0)
+        self.assertEqual(o.cursor, 2)
+        self.assertEqual(o.target, 13) 
+        o.next(advance_block=True)
+        o.next(advance_block=True)
+
+        session.stop(o)
+        store = SyncFsStore(self.path, session_id='foo')
+        store.start()
+        self.assertEqual(o.cursor, 4)
+        self.assertEqual(o.target, 13) 
+
+
+    def test_sync_history_complete(self):
+        store = SyncFsStore(self.path, session_id='foo')
+        session = SyncSession(store)
+
+        session.start(target=3)
+        o = session.get(0)
+        o.next(advance_block=True)
+        o.next(advance_block=True)
+        o.next(advance_block=True)
+        with self.assertRaises(SyncDone):
+            o.next(advance_block=True)
 
 
 if __name__ == '__main__':
