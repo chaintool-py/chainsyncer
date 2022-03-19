@@ -32,8 +32,8 @@ class SyncFsItem:
 
         logg.debug('get key {}'.format(self.state_key))
         v = self.sync_state.get(self.state_key)
-        self.cursor = int.from_bytes(v[:4], 'big')
-        self.tx_cursor = int.from_bytes(v[4:], 'big')
+
+        (self.cursor, self.tx_cursor, self.target) = sync_state_deserialize(v)
 
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') and not ignore_invalid:
             raise LockError(s)
@@ -244,17 +244,13 @@ class SyncFsStore:
         self.__load(target)
 
         if self.first:
-            block_number = offset
-            state_bytes = block_number.to_bytes(4, 'big')
-            tx_index = 0
-            state_bytes += tx_index.to_bytes(4, 'big')
-            block_number_str = str(block_number)
+            state_bytes = sync_state_serialize(offset, 0, target)
+            block_number_str = str(offset)
             self.state.put(block_number_str, state_bytes)
             self.filter_state.put(block_number_str)
-            o = SyncFsItem(block_number, target, self.state, self.filter_state)
-            self.items[block_number] = o
-            self.item_keys.append(block_number)
-            logg.debug('added first {}'.format(o))
+            o = SyncFsItem(offset, target, self.state, self.filter_state)
+            self.items[offset] = o
+            self.item_keys.append(offset)
         elif offset > 0:
             logg.warning('block number argument {} for start ignored for already initiated sync {}'.format(offset, self.session_id))
         self.started = True

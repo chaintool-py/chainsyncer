@@ -193,13 +193,11 @@ class TestFs(unittest.TestCase):
         session = SyncSession(store)
 
         session.start()
-        logg.debug('list {} {} {}'.format(store.state.list(store.state.SYNC), store.state.list(store.state.DONE), store.state.list(store.state.NEW)))
         o = session.get(0)
         o.next(advance_block=True)
         o.next(advance_block=True)
         session.stop(o)
 
-        logg.debug('list {} {} {}'.format(store.state.list(store.state.SYNC), store.state.list(store.state.DONE), store.state.list(store.state.NEW)))
         store = SyncFsStore(self.path, session_id='foo')
         store.start()
         o = store.get(2)
