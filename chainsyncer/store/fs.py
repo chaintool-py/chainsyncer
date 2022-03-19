@@ -20,6 +20,20 @@ from chainsyncer.error import (
 logg = logging.getLogger(__name__)
 
 
+def sync_state_serialize(block_height, tx_index, block_target):
+    b = block_height.to_bytes(4, 'big')
+    b += tx_index.to_bytes(4, 'big')
+    b += block_target.to_bytes(4, 'big', signed=True)
+    return b
+
+
+def sync_state_deserialize(b):
+    block_height = int.from_bytes(b[:4], 'big')
+    tx_index = int.from_bytes(b[4:8], 'big')
+    block_target = int.from_bytes(b[8:], 'big', signed=True)
+    return (block_height, tx_index, block_target,)
+
+
 # NOT thread safe
 class SyncFsItem:
     
@@ -293,16 +307,3 @@ class SyncFsStore:
     def disconnect(self):
         self.filter_state.disconnect()
 
-
-def sync_state_serialize(block_height, tx_index, block_target):
-    b = block_height.to_bytes(4, 'big')
-    b += tx_index.to_bytes(4, 'big')
-    b += block_target.to_bytes(4, 'big', signed=True)
-    return b
-
-
-def sync_state_deserialize(b):
-    block_height = int.from_bytes(b[:4], 'big')
-    tx_index = int.from_bytes(b[4:8], 'big')
-    block_target = int.from_bytes(b[8:], 'big', signed=True)
-    return (block_height, tx_index, block_target,)
