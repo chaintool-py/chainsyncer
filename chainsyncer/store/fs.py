@@ -64,8 +64,7 @@ class SyncFsItem:
     def next(self, advance_block=False):
         v = self.sync_state.get(self.state_key)
 
-        block_number = int.from_bytes(v[:4], 'big')
-        tx_index = int.from_bytes(v[4:], 'big')
+        (block_number, tx_index, target) = sync_state_deserialize(v)
         if advance_block:
             block_number += 1
             tx_index = 0
@@ -77,8 +76,8 @@ class SyncFsItem:
         self.cursor = block_number
         self.tx_cursor = tx_index
 
-        v = block_number.to_bytes(4, 'big')
-        self.sync_state.replace(self.state_key, v)
+        b = sync_state_serialize(block_number, tx_index, target)
+        self.sync_state.replace(self.state_key, b)
 
 
     def __find_advance(self):
