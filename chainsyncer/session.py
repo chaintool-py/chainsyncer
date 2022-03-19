@@ -9,7 +9,6 @@ class SyncSession:
 
     def __init__(self, session_store):
         self.session_store = session_store
-        self.filters = []
         self.started = self.session_store.started
         self.get = self.session_store.get
         self.next = self.session_store.next_item
