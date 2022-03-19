@@ -236,9 +236,9 @@ class SyncFsStore:
             self.item_keys.append(block_number)
             logg.info('added existing {}'.format(o))
 
-        fp = os.path.join(self.session_path, str(target))
+        fp = os.path.join(self.session_path, 'target')
         if len(thresholds) == 0:
-            logg.info('syncer first run')
+            logg.info('syncer first run target {}'.format(target))
             self.first = True
             f = open(fp, 'w')
             f.write(str(target))

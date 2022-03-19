@@ -203,5 +203,20 @@ class TestFs(unittest.TestCase):
         o = store.get(2)
 
 
+    def test_sync_history_interrupted(self):
+        store = SyncFsStore(self.path, session_id='foo')
+        session = SyncSession(store)
+
+        session.start(target=13)
+        o = session.get(0)
+        o.next(advance_block=True)
+        o.next(advance_block=True)
+        session.stop(o)
+
+        store = SyncFsStore(self.path, session_id='foo')
+        store.start()
+        o = store.get(0)
+
+
 if __name__ == '__main__':
     unittest.main()
