@@ -23,6 +23,10 @@ class SyncSession:
         return self.item
 
 
+    def stop(self, item):
+        self.session_store.stop(item)
+
+
     def filter(self, conn, block, tx):
         self.session_store.connect()
         for fltr in self.filters:
