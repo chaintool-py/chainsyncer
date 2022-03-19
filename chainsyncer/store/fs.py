@@ -76,10 +76,11 @@ class SyncFsItem:
 
         
     def next(self, advance_block=False):
-        v = self.sync_state.get(self.state_key)
+        v = self.sync_state.state(self.state_key)
         if v == self.sync_state.DONE:
             raise SyncDone(self.target)
 
+        v = self.sync_state.get(self.state_key)
         (block_number, tx_index, target) = sync_state_deserialize(v)
         if advance_block:
             block_number += 1
