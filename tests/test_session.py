@@ -21,6 +21,7 @@ from chainsyncer.unittest import (
         MockTx,
         MockBlock,
         MockDriver,
+        MockFilterError,
         )
 from chainsyncer.driver import SyncDriver
 
@@ -79,6 +80,37 @@ class TestFilter(unittest.TestCase):
             drv.run(self.conn)
 
         self.assertEqual(len(fltr_one.contents), 3)
+
+
+    def test_driver_interrupt(self):
+        drv = MockDriver(self.store, target=1)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(0, tx_hash)
+        block = MockBlock(0, [tx_hash])
+        drv.add_block(block)
+
+        fltr_one = MockFilter('foo', brk_hard=1)
+        self.store.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        self.store.register(fltr_two)
+
+        with self.assertRaises(MockFilterError):
+            drv.run(self.conn)
+
+        store = SyncFsStore(self.path)
+        drv = MockDriver(store, target=1)
+        drv.add_block(block)
+
+        tx_hash_one = os.urandom(32).hex()
+        tx = MockTx(0, tx_hash_one)
+        tx_hash_two = os.urandom(32).hex()
+        tx = MockTx(1, tx_hash_two)
+        block = MockBlock(1, [tx_hash_one, tx_hash_two])
+        drv.add_block(block)
+
+        with self.assertRaises(SyncDone):
+            drv.run(self.conn)
 
 
 if __name__ == '__main__':

@@ -124,6 +124,7 @@ class SyncDriver:
 
 
     def process_single(self, conn, block, tx):
+        logg.debug('single')
         self.session.filter(conn, block, tx)
 
 

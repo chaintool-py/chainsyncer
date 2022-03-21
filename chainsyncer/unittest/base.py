@@ -15,6 +15,10 @@ from chainsyncer.driver import SyncDriver
 logg = logging.getLogger().getChild(__name__)
 
 
+class MockFilterError(Exception):
+    pass
+
+
 class MockConn:
     """Noop connection mocker.
 
@@ -82,7 +86,7 @@ class MockStore(State):
 
 class MockFilter:
 
-    def __init__(self, name, brk=False, z=None):
+    def __init__(self, name, brk=None, brk_hard=None, z=None):
         self.name = name
         if z == None:
             h = hashlib.sha256()
@@ -90,6 +94,7 @@ class MockFilter:
             z = h.digest()
         self.z = z
         self.brk = brk
+        self.brk_hard = brk_hard
         self.contents = []
 
 
@@ -102,8 +107,21 @@ class MockFilter:
 
 
     def filter(self, conn, block, tx):
+        r = False
         self.contents.append((block.number, tx.index, tx.hash,))
-        return self.brk
+        if self.brk_hard != None:
+            r = True
+            if self.brk_hard > 0:
+                r = True
+            self.brk_hard -= 1
+            if r:
+                raise MockFilterError()
+        if self.brk != None:
+            if self.brk > 0:
+                r = True
+            self.brk -= 1
+        logg.debug('filter {} r {}'.format(self.common_name(), r))
+        return r
 
 
 class MockDriver(SyncDriver):
