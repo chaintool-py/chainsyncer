@@ -50,9 +50,9 @@ class SyncFsItem:
         (self.cursor, self.tx_cursor, self.target) = sync_state_deserialize(v)
 
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') and not ignore_invalid:
-            raise LockError(s)
+            raise LockError(self.state_key)
 
-        self.count = len(self.filter_state.all(pure=True)) - 3
+        self.count = len(self.filter_state.all(pure=True)) - 4
         self.skip_filter = False
         if self.count == 0:
             self.skip_filter = True
@@ -148,7 +148,7 @@ class SyncFsItem:
 
 class SyncFsStore:
 
-    def __init__(self, base_path, session_id=None):
+    def __init__(self, base_path, session_id=None, state_event_callback=None, filter_state_event_callback=None):
         self.session_id = None
         self.session_path = None
         self.is_default = False
@@ -182,14 +182,14 @@ class SyncFsStore:
         logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
 
         factory = SimpleFileStoreFactory(self.session_path, binary=True)
-        self.state = PersistedState(factory.add, 2)
+        self.state = PersistedState(factory.add, 2, event_callback=state_event_callback)
         self.state.add('SYNC')
         self.state.add('DONE')
 
         base_filter_path = os.path.join(self.session_path, 'filter')
         factory = SimpleFileStoreFactory(base_filter_path, binary=True)
-        filter_state_backend = PersistedState(factory.add, 0, check_alias=False)
-        self.filter_state = SyncState(filter_state_backend)
+        filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=filter_state_event_callback)
+        self.filter_state = SyncState(filter_state_backend, scan_path=base_filter_path)
         self.filters = [] # used by SyncSession
    
 

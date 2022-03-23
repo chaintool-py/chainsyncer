@@ -1,14 +1,18 @@
 # standard imports
 import hashlib
 import logging
+import re
+import os
 
 logg = logging.getLogger(__name__)
 
 
+re_processedname = r'^_?[A-Z,_]*$'
+
 # TODO: properly clarify interface shared with syncfsstore, move to filter module?
 class SyncState:
 
-    def __init__(self, state_store):
+    def __init__(self, state_store, scan_path=None):
         self.state_store = state_store
         self.digest = b'\x00' * 32
         self.summed = False
@@ -31,6 +35,8 @@ class SyncState:
         self.state_store.sync()
         self.all = self.state_store.all
         self.started = False
+
+        self.scan_path = scan_path
 
 
     def __verify_sum(self, v):
@@ -66,6 +72,18 @@ class SyncState:
                 k = self.state_store.from_name(v)
                 self.state_store.sync(k)
                 self.__syncs[v] = True
+            if self.scan_path != None:
+                for v in os.listdir(self.scan_path):
+                    logg.debug('sync {} try {}'.format(self.scan_path, v))
+                    if re.match(re_processedname, v):
+                        k = None
+                        try:
+                            k = self.state_store.from_elements(v)
+                            self.state_store.alias(v, k)
+                        except ValueError:
+                            k = self.state_store.from_name(v)
+                        self.state_store.sync(k)
+                        self.__syncs[v] = True
             self.synced = True
         self.connected = True
 

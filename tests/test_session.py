@@ -22,10 +22,12 @@ from chainsyncer.unittest import (
         MockBlock,
         MockDriver,
         MockFilterError,
+        state_event_handler,
+        filter_state_event_handler,
         )
 from chainsyncer.driver import SyncDriver
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.STATETRACE)
 logg = logging.getLogger()
 
 
@@ -33,7 +35,7 @@ class TestFilter(unittest.TestCase):
 
     def setUp(self):
         self.path = tempfile.mkdtemp()
-        self.store = SyncFsStore(self.path)
+        self.store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
         self.conn = MockConn()
 
 
@@ -98,19 +100,26 @@ class TestFilter(unittest.TestCase):
         with self.assertRaises(MockFilterError):
             drv.run(self.conn)
 
-        store = SyncFsStore(self.path)
-        drv = MockDriver(store, target=1)
-        drv.add_block(block)
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        
+        fltr_one = MockFilter('foo', brk_hard=1)
+        store.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        store.register(fltr_two)
 
-        tx_hash_one = os.urandom(32).hex()
-        tx = MockTx(0, tx_hash_one)
-        tx_hash_two = os.urandom(32).hex()
-        tx = MockTx(1, tx_hash_two)
-        block = MockBlock(1, [tx_hash_one, tx_hash_two])
-        drv.add_block(block)
+        with self.assertRaises(LockError):
+            drv = MockDriver(store, target=1)
 
-        with self.assertRaises(SyncDone):
-            drv.run(self.conn)
+#        drv.add_block(block)
+#
+#        tx_hash_one = os.urandom(32).hex()
+#        tx = MockTx(0, tx_hash_one)
+#        tx_hash_two = os.urandom(32).hex()
+#        tx = MockTx(1, tx_hash_two)
+#        block = MockBlock(1, [tx_hash_one, tx_hash_two])
+#        drv.add_block(block)
+
+#            drv.run(self.conn)
 
 
 if __name__ == '__main__':

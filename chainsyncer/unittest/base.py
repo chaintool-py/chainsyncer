@@ -12,7 +12,16 @@ from shep.state import State
 from chainsyncer.error import NoBlockForYou
 from chainsyncer.driver import SyncDriver
 
+logging.STATETRACE = 5
 logg = logging.getLogger().getChild(__name__)
+
+
+def state_event_handler(k, v_old, v_new):
+    logg.log(logging.STATETRACE, 'sync state change key {}: {} -> {}'.format(k, v_old, v_new))
+    
+
+def filter_state_event_handler(k, v_old, v_new):
+    logg.log(logging.STATETRACE, 'filter state change key {}: {} -> {}'.format(k, v_old, v_new))
 
 
 class MockFilterError(Exception):
@@ -120,7 +129,7 @@ class MockFilter:
             if self.brk > 0:
                 r = True
             self.brk -= 1
-        logg.debug('filter {} r {}'.format(self.common_name(), r))
+        logg.debug('filter {} r {} block {}'.format(self.common_name(), r, block.number))
         return r
 
 

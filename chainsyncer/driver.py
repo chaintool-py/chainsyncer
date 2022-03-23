@@ -38,6 +38,7 @@ class SyncDriver:
         self.idle_callback = idle_callback
         self.last_start = 0
         self.clock_id = time.CLOCK_MONOTONIC_RAW
+        self.store.connect()
         self.store.start(offset=offset, target=target)
 
 
