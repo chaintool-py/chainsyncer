@@ -84,7 +84,7 @@ class TestFilter(unittest.TestCase):
         self.assertEqual(len(fltr_one.contents), 3)
 
 
-    def test_driver_interrupt(self):
+    def test_driver_interrupt_noresume(self):
         drv = MockDriver(self.store, target=1)
 
         tx_hash = os.urandom(32).hex()
@@ -102,7 +102,7 @@ class TestFilter(unittest.TestCase):
 
         store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
         
-        fltr_one = MockFilter('foo', brk_hard=1)
+        fltr_one = MockFilter('foo') #, brk_hard=1)
         store.register(fltr_one)
         fltr_two = MockFilter('bar')
         store.register(fltr_two)
@@ -120,6 +120,31 @@ class TestFilter(unittest.TestCase):
 #        drv.add_block(block)
 
 #            drv.run(self.conn)
+
+
+    def test_driver_interrupt_resume(self):
+        drv = MockDriver(self.store, target=1)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(0, tx_hash)
+        block = MockBlock(0, [tx_hash])
+        drv.add_block(block)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(0, tx_hash)
+        block = MockBlock(1, [tx_hash])
+        drv.add_block(block)
+
+        fltr_one = MockFilter('foo', brk=1)
+        self.store.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        self.store.register(fltr_two)
+
+
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+
+        with self.assertRaises(SyncDone):
+            drv.run(self.conn)
 
 
 if __name__ == '__main__':
