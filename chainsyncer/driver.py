@@ -110,7 +110,6 @@ class SyncDriver:
                 if self.block_callback != None:
                     self.block_callback(block, None)
 
-                last_block = block
                 try:
                     self.process(conn, item, block, tx_start)
                 except IndexError:
@@ -119,6 +118,9 @@ class SyncDriver:
                 time.sleep(self.yield_delay)
             if self.post_callback != None:
                 self.post_callback()
+    
+            if self.store.target > -1 and block.number >= self.store.target:
+                self.running = False
 
             self.idle(interval)
 

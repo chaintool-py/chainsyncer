@@ -128,7 +128,9 @@ class TestFilter(unittest.TestCase):
 
 
         store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
-        drv = MockDriver(store)
+        fltr_one = MockFilter('foo')
+        store.register(fltr_one)
+        drv = MockDriver(store, target=1)
         generator.apply(drv, offset=1)
         drv.run(self.conn, interval=0.1)
 

@@ -195,7 +195,10 @@ class MockDriver(SyncDriver):
 
 
     def get(self, conn, item):
-        return self.blocks[item.cursor]
+        try:
+            return self.blocks[item.cursor]
+        except KeyError:
+            raise NoBlockForYou()
 
 
     def process(self, conn, item, block, tx_start):
