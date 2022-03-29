@@ -16,6 +16,7 @@ from chainsyncer.error import (
         SyncDone,
         )
 from chainsyncer.unittest import (
+        MockBlockGenerator,
         MockFilter,
         MockConn,
         MockTx,
@@ -63,18 +64,8 @@ class TestFilter(unittest.TestCase):
 
     def test_driver(self):
         drv = MockDriver(self.store, target=1)
-
-        tx_hash = os.urandom(32).hex()
-        tx = MockTx(0, tx_hash)
-        block = MockBlock(0, [tx_hash])
-        drv.add_block(block)
-
-        tx_hash_one = os.urandom(32).hex()
-        tx = MockTx(0, tx_hash_one)
-        tx_hash_two = os.urandom(32).hex()
-        tx = MockTx(1, tx_hash_two)
-        block = MockBlock(1, [tx_hash_one, tx_hash_two])
-        drv.add_block(block)
+        generator = MockBlockGenerator()
+        generator.generate([1, 2], driver=drv)
 
         fltr_one = MockFilter('foo')
         self.store.register(fltr_one)
@@ -86,11 +77,8 @@ class TestFilter(unittest.TestCase):
 
     def test_driver_interrupt_noresume(self):
         drv = MockDriver(self.store, target=1)
-
-        tx_hash = os.urandom(32).hex()
-        tx = MockTx(0, tx_hash)
-        block = MockBlock(0, [tx_hash])
-        drv.add_block(block)
+        generator = MockBlockGenerator()
+        generator.generate([1], driver=drv)
 
         fltr_one = MockFilter('foo', brk_hard=1)
         self.store.register(fltr_one)
@@ -110,30 +98,11 @@ class TestFilter(unittest.TestCase):
         with self.assertRaises(LockError):
             drv = MockDriver(store, target=1)
 
-#        drv.add_block(block)
-#
-#        tx_hash_one = os.urandom(32).hex()
-#        tx = MockTx(0, tx_hash_one)
-#        tx_hash_two = os.urandom(32).hex()
-#        tx = MockTx(1, tx_hash_two)
-#        block = MockBlock(1, [tx_hash_one, tx_hash_two])
-#        drv.add_block(block)
 
-#            drv.run(self.conn)
-
-
-    def test_driver_interrupt_resume(self):
+    def test_driver_interrupt_filter(self):
         drv = MockDriver(self.store, target=1)
-
-        tx_hash = os.urandom(32).hex()
-        tx = MockTx(0, tx_hash)
-        block = MockBlock(0, [tx_hash])
-        drv.add_block(block)
-
-        tx_hash = os.urandom(32).hex()
-        tx = MockTx(0, tx_hash)
-        block = MockBlock(1, [tx_hash])
-        drv.add_block(block)
+        generator = MockBlockGenerator()
+        generator.generate([1, 1], driver=drv)
 
         fltr_one = MockFilter('foo', brk=1)
         self.store.register(fltr_one)
@@ -145,6 +114,12 @@ class TestFilter(unittest.TestCase):
 
         with self.assertRaises(SyncDone):
             drv.run(self.conn)
+
+
+    def test_driver_interrupt_sync(self):
+        generator = MockBlockGenerator()
+        drv = MockDriver(self.store, target=1)
+        generator.generate([1, 2], driver=drv)
 
 
 if __name__ == '__main__':

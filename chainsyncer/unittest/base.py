@@ -28,6 +28,27 @@ class MockFilterError(Exception):
     pass
 
 
+class MockBlockGenerator:
+
+    def __init__(self, offset=0):
+        self.blocks = {}
+        self.offset = offset
+        self.cursor = offset
+
+
+    def generate(self, spec=[], driver=None):
+        for v in spec:
+            txs = []
+            for i in range(v):
+                tx_hash = os.urandom(32).hex()
+                tx = MockTx(0, tx_hash)
+                txs.append(tx)
+
+            block = MockBlock(self.cursor, txs)
+            driver.add_block(block)
+            self.cursor += 1
+
+
 class MockConn:
     """Noop connection mocker.
 
@@ -72,6 +93,7 @@ class MockBlock:
         """
         self.number = number
         self.txs = txs
+        self.hash = os.urandom(32).hex()
 
 
     def tx(self, i):
@@ -141,6 +163,7 @@ class MockDriver(SyncDriver):
 
 
     def add_block(self, block):
+        logg.debug('add block {} {} with {} txs'.format(block.number, block.hash, len(block.txs)))
         self.blocks[block.number] = block
 
 
