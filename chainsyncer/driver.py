@@ -118,7 +118,8 @@ class SyncDriver:
                 time.sleep(self.yield_delay)
             if self.post_callback != None:
                 self.post_callback()
-    
+   
+            logg.debug('fooo')
             if self.store.target > -1 and block.number >= self.store.target:
                 self.running = False
 
