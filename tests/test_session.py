@@ -117,9 +117,20 @@ class TestFilter(unittest.TestCase):
 
 
     def test_driver_interrupt_sync(self):
+        drv = MockDriver(self.store, interrupt_block=1)
         generator = MockBlockGenerator()
-        drv = MockDriver(self.store, target=1)
-        generator.generate([1, 2], driver=drv)
+        generator.generate([3, 1, 2], driver=drv)
+
+        fltr_one = MockFilter('foo')
+        self.store.register(fltr_one)
+
+        drv.run(self.conn, interval=0.1)
+
+
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        drv = MockDriver(store)
+        generator.apply(drv, offset=1)
+        drv.run(self.conn, interval=0.1)
 
 
 if __name__ == '__main__':

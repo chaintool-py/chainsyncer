@@ -55,7 +55,7 @@ class SyncDriver:
         self.running = False
 
 
-    def run(self, conn):
+    def run(self, conn, interval=1):
         while self.running_global:
             self.session = SyncSession(self.store)
             item = self.session.start()
@@ -63,7 +63,7 @@ class SyncDriver:
                 self.running = False
                 self.running_global = False
                 break
-            self.loop(conn, item)
+            self.loop(conn, item, interval=interval)
 
 
     def idle(self, interval):
@@ -92,7 +92,7 @@ class SyncDriver:
         time.sleep(interval)
 
 
-    def loop(self, conn, item):
+    def loop(self, conn, item, interval=1):
         logg.debug('started loop')
         tx_start = item.tx_cursor
         while self.running and SyncDriver.running_global:
@@ -115,7 +115,6 @@ class SyncDriver:
                     self.process(conn, item, block, tx_start)
                 except IndexError:
                     item.next(advance_block=True)
-                logg.debug('foo')
                 tx_start = 0
                 time.sleep(self.yield_delay)
             if self.post_callback != None:

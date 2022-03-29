@@ -17,11 +17,17 @@ logg = logging.getLogger().getChild(__name__)
 
 
 def state_event_handler(k, v_old, v_new):
-    logg.log(logging.STATETRACE, 'sync state change key {}: {} -> {}'.format(k, v_old, v_new))
+    if v_old == None:
+        logg.log(logging.STATETRACE, 'sync state create key {}: -> {}'.format(k, v_new))
+    else:
+        logg.log(logging.STATETRACE, 'sync state change key {}: {} -> {}'.format(k, v_old, v_new))
     
 
 def filter_state_event_handler(k, v_old, v_new):
-    logg.log(logging.STATETRACE, 'filter state change key {}: {} -> {}'.format(k, v_old, v_new))
+    if v_old == None:
+        logg.log(logging.STATETRACE, 'filter state create key {}: -> {}'.format(k, v_new))
+    else:
+        logg.log(logging.STATETRACE, 'filter state change key {}: {} -> {}'.format(k, v_old, v_new))
 
 
 class MockFilterError(Exception):
@@ -45,8 +51,20 @@ class MockBlockGenerator:
                 txs.append(tx)
 
             block = MockBlock(self.cursor, txs)
-            driver.add_block(block)
+            self.blocks[self.cursor] = block
             self.cursor += 1
+
+        if driver != None:
+            self.apply(driver)
+
+
+    def apply(self, driver, offset=0):
+        block_numbers = list(self.blocks.keys())
+        for block_number in block_numbers:
+            if block_number < offset:
+                continue
+            block = self.blocks[block_number]
+            driver.add_block(block) 
 
 
 class MockConn:
@@ -151,15 +169,24 @@ class MockFilter:
             if self.brk > 0:
                 r = True
             self.brk -= 1
-        logg.debug('filter {} r {} block {}'.format(self.common_name(), r, block.number))
+        logg.debug('filter {} result {} block {}'.format(self.common_name(), r, block.number))
         return r
 
 
 class MockDriver(SyncDriver):
 
-    def __init__(self, store, offset=0, target=-1):
+    def __init__(self, store, offset=0, target=-1, interrupt_block=None, interrupt_tx=None, interrupt_global=False):
         super(MockDriver, self).__init__(store, offset=offset, target=target)
         self.blocks = {}
+        self.interrupt = None
+        if interrupt_block != None:
+            interrupt_block = int(interrupt_block)
+            if interrupt_tx == None:
+                interrupt_tx = 0
+            else:
+                interrupt_tx = int(interrupt_tx)
+            self.interrupt = (interrupt_block, interrupt_tx,)
+        self.interrupt_global = interrupt_global
 
 
     def add_block(self, block):
@@ -173,7 +200,14 @@ class MockDriver(SyncDriver):
 
     def process(self, conn, item, block, tx_start):
         i = tx_start
-        while True:
+        while self.running:
+            if self.interrupt != None:
+                if self.interrupt[0] == block.number and self.interrupt[1] == i:
+                    logg.info('interrupt triggered at {}'.format(self.interrupt))
+                    if self.interrupt_global:
+                        SyncDriver.running_global = False
+                    self.running = False
+                    break
             tx = block.tx(i)
             self.process_single(conn, block, tx)
             item.next()
