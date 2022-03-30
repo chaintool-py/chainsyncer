@@ -67,6 +67,7 @@ class MockBlockGenerator:
             driver.add_block(block) 
 
 
+
 class MockConn:
     """Noop connection mocker.
 
@@ -157,7 +158,6 @@ class MockFilter:
 
     def filter(self, conn, block, tx):
         r = False
-        self.contents.append((block.number, tx.index, tx.hash,))
         if self.brk_hard != None:
             r = True
             if self.brk_hard > 0:
@@ -169,6 +169,7 @@ class MockFilter:
             if self.brk > 0:
                 r = True
             self.brk -= 1
+        self.contents.append((block.number, tx.index, tx.hash,))
         logg.debug('filter {} result {} block {}'.format(self.common_name(), r, block.number))
         return r
 

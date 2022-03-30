@@ -80,13 +80,16 @@ class TestFilter(unittest.TestCase):
         generator = MockBlockGenerator()
         generator.generate([1], driver=drv)
 
-        fltr_one = MockFilter('foo', brk_hard=1)
+        fltr_one = MockFilter('foo')
         self.store.register(fltr_one)
-        fltr_two = MockFilter('bar')
+        fltr_two = MockFilter('bar', brk_hard=1)
         self.store.register(fltr_two)
 
         with self.assertRaises(MockFilterError):
             drv.run(self.conn)
+
+        self.assertEqual(len(fltr_one.contents), 1)
+        self.assertEqual(len(fltr_two.contents), 0)
 
         store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
         
@@ -98,22 +101,31 @@ class TestFilter(unittest.TestCase):
         with self.assertRaises(LockError):
             drv = MockDriver(store, target=1)
 
+        self.assertEqual(len(fltr_one.contents), 0)
+        self.assertEqual(len(fltr_two.contents), 0)
+
 
     def test_driver_interrupt_filter(self):
         drv = MockDriver(self.store, target=1)
         generator = MockBlockGenerator()
         generator.generate([1, 1], driver=drv)
 
-        fltr_one = MockFilter('foo', brk=1)
+        fltr_one = MockFilter('foo')
         self.store.register(fltr_one)
-        fltr_two = MockFilter('bar')
+        fltr_two = MockFilter('bar', brk=1)
         self.store.register(fltr_two)
+        fltr_three = MockFilter('baz')
+        self.store.register(fltr_three)
 
 
         store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
 
         with self.assertRaises(SyncDone):
             drv.run(self.conn)
+
+        self.assertEqual(len(fltr_one.contents), 2)
+        self.assertEqual(len(fltr_two.contents), 2)
+        self.assertEqual(len(fltr_three.contents), 1)
 
 
     def test_driver_interrupt_sync(self):
@@ -126,9 +138,9 @@ class TestFilter(unittest.TestCase):
 
         drv.run(self.conn, interval=0.1)
 
+        self.assertEqual(len(fltr_one.contents), 3)
 
         store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
-        fltr_one = MockFilter('foo')
         store.register(fltr_one)
         drv = MockDriver(store)
         generator.apply(drv, offset=1)
@@ -136,6 +148,8 @@ class TestFilter(unittest.TestCase):
         with self.assertRaises(SyncDone) as e:
             drv.run(self.conn, interval=0.1)
             self.assertEqual(e, 2)
+
+        self.assertEqual(len(fltr_one.contents), 6)
 
 
 if __name__ == '__main__':
