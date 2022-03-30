@@ -1,1 +1,1 @@
-include *requirements.txt LICENSE.txt chainsyncer/db/migrations/default/* chainsyncer/db/migrations/default/versions/* chainsyncer/db/migrations/default/versions/src/*
+include *requirements.txt LICENSE.txt
