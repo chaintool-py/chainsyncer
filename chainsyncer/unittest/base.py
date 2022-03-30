@@ -121,7 +121,7 @@ class MockBlock:
         :param i: Transaction index
         :type i: int
         """
-        return MockTx(i, self.txs[i])
+        return MockTx(i, self.txs[i].hash)
 
 
 class MockStore(State):
@@ -170,7 +170,7 @@ class MockFilter:
                 r = True
             self.brk -= 1
         self.contents.append((block.number, tx.index, tx.hash,))
-        logg.debug('filter {} result {} block {}'.format(self.common_name(), r, block.number))
+        logg.debug('filter {} result {} block {} tx {} {}'.format(self.common_name(), r, block.number, tx.index, tx.hash))
         return r
 
 
@@ -202,8 +202,8 @@ class MockDriver(SyncDriver):
             raise NoBlockForYou()
 
 
-    def process(self, conn, item, block, tx_start):
-        i = tx_start
+    def process(self, conn, item, block):
+        i = item.tx_cursor
         while self.running:
             if self.interrupt != None:
                 if self.interrupt[0] == block.number and self.interrupt[1] == i:
@@ -216,3 +216,54 @@ class MockDriver(SyncDriver):
             self.process_single(conn, block, tx)
             item.next()
             i += 1
+
+
+class MockChainInterface:
+
+    def block_by_number(self, number):
+        return ('block_by_number', number,)
+
+
+    def tx_by_hash(self, hsh):
+        return ('tx_by_hash', hsh,)
+
+
+    def block_from_src(self, src):
+        return src
+
+
+    def src_normalize(self, src):
+        return src
+
+
+    def tx_receipt(self, hsh):
+        return ('receipt', hsh,)
+
+
+class MockChainInterfaceConn(MockConn):
+
+    def __init__(self, interface):
+        self.ifc = interface
+        self.blocks = {}
+        self.txs = {}
+   
+
+    def add_block(self, block):
+        logg.debug('add block {} {} with {} txs'.format(block.number, block.hash, len(block.txs)))
+        self.blocks[block.number] = block
+        for tx in block.txs:
+            self.txs[tx.hash] = tx
+           
+
+    def do(self, o):
+        m = getattr(self, 'handle_' + o[0])
+        return m(o[1])
+
+
+    def handle_block_by_number(self, number):
+        return self.blocks[number]
+
+
+
+    def handle_receipt(self, hsh):
+        return {}

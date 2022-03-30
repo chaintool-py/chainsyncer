@@ -6,3 +6,4 @@ gmon.out
 build/
 dist/
 *.sqlite
+old/

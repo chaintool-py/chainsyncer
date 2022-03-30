@@ -94,11 +94,12 @@ class SyncDriver:
 
     def loop(self, conn, item, interval=1):
         logg.debug('started loop')
-        tx_start = item.tx_cursor
         while self.running and SyncDriver.running_global:
             self.last_start = time.clock_gettime_ns(self.clock_id)
+
             if self.pre_callback != None:
                 self.pre_callback()
+
             while True and self.running:
                 try:
                     block = self.get(conn, item)
@@ -111,27 +112,26 @@ class SyncDriver:
                     self.block_callback(block, None)
 
                 try:
-                    self.process(conn, item, block, tx_start)
+                    self.process(conn, item, block)
                 except IndexError:
                     item.next(advance_block=True)
-                tx_start = 0
                 time.sleep(self.yield_delay)
+
+                if self.store.target > -1 and block.number >= self.store.target:
+                    self.running = False
+
             if self.post_callback != None:
                 self.post_callback()
    
-            logg.debug('fooo')
-            if self.store.target > -1 and block.number >= self.store.target:
-                self.running = False
 
             self.idle(interval)
 
 
     def process_single(self, conn, block, tx):
-        logg.debug('single')
         self.session.filter(conn, block, tx)
 
 
-    def process(self, conn, block, tx_start):
+    def process(self, conn, item, block):
         raise NotImplementedError()
 
 

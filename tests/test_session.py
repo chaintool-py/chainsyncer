@@ -117,7 +117,6 @@ class TestFilter(unittest.TestCase):
         fltr_three = MockFilter('baz')
         self.store.register(fltr_three)
 
-
         store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
 
         with self.assertRaises(SyncDone):
