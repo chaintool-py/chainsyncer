@@ -241,17 +241,26 @@ class SyncFsStore:
             logg.info('added existing {}'.format(o))
 
         fp = os.path.join(self.session_path, 'target')
-        if len(thresholds) == 0:
-            logg.info('syncer first run target {}'.format(target))
-            self.first = True
-            f = open(fp, 'w')
-            f.write(str(target))
+        have_target = False
+        try:
+            f = open(fp, 'r')
+            v = f.read()
             f.close()
+            self.target = int(v)
+            have_target = True
+        except FileNotFoundError as e:
+            pass
 
-        f = open(fp, 'r')
-        v = f.read()
-        f.close()
-        self.target = int(v)
+        if len(thresholds) == 0:
+            if have_target:
+                logg.warning('sync "{}" is already done, nothing to do'.format(self.session_id))
+            else:
+                logg.info('syncer first run target {}'.format(target))
+                self.first = True
+                f = open(fp, 'w')
+                f.write(str(target))
+                f.close()
+                self.target = target
 
 
     def start(self, offset=0, target=-1):
