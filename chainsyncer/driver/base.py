@@ -40,6 +40,10 @@ class SyncDriver:
         self.clock_id = time.CLOCK_MONOTONIC_RAW
         self.store.connect()
         self.store.start(offset=offset, target=target)
+        if not SyncDriver.signal_set:
+            for sig in SyncDriver.signal_request:
+                signal.signal(sig, self.__sig_terminate)
+            SyncDriver.signal_set = True
 
 
     def __sig_terminate(self, sig, frame):
