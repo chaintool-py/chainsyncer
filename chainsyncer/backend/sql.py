@@ -11,7 +11,7 @@ from chainsyncer.db.models.filter import BlockchainSyncFilter
 from chainsyncer.db.models.base import SessionBase
 from .base import Backend
 
-logg = logging.getLogger().getChild(__name__)
+logg = logging.getLogger(__name__)
 
 
 class SQLBackend(Backend):
@@ -267,7 +267,8 @@ class SQLBackend(Backend):
             session.flush()
 
             #if block_height != block_resume:
-            if highest_unsynced_block < block_resume: 
+            logg.info('last live id {} {} {}'.format(last_live_id, highest_unsynced_block, block_resume))
+            if highest_unsynced_block <= block_resume: 
 
                 q = session.query(BlockchainSyncFilter)
                 q = q.filter(BlockchainSyncFilter.chain_sync_id==last_live_id)

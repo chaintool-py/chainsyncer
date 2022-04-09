@@ -65,6 +65,12 @@ class BlockPollSyncer(Syncer):
         :returns: See chainsyncer.backend.base.Backend.get
         """
         (pair, fltr) = self.backend.get()
+        (target, fltr_target) = self.backend.target()
+        if target == pair[0]:
+            logg.info('syncer was done before it started: {}'.format(self))
+            raise SyncDone(target)
+            
+
         start_tx = pair[1]
 
 
