@@ -79,6 +79,8 @@ class SyncFsItem:
         v = self.sync_state.state(self.state_key)
         if v == self.sync_state.DONE:
             raise SyncDone(self.target)
+        elif v == self.sync_state.NEW:
+            self.sync_state.next(self.state_key)
 
         v = self.sync_state.get(self.state_key)
         (block_number, tx_index, target) = sync_state_deserialize(v)
