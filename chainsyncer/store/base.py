@@ -4,7 +4,7 @@ import logging
 # local imports
 from shep.persist import PersistedState
 from shep.error import StateInvalid
-from chainsyncer.state import FilterState
+from chainsyncer.filter import FilterState
 from chainsyncer.error import (
         LockError,
         FilterDone,

@@ -6,7 +6,7 @@ import logging
 
 # local imports
 from chainsyncer.session import SyncSession
-from chainsyncer.state import FilterState
+from chainsyncer.filter import FilterState
 from chainsyncer.store.fs import SyncFsStore
 from chainsyncer.unittest import (
         MockStore,
