@@ -36,17 +36,17 @@ class SyncRocksDbStore(SyncStore):
     def __init__(self, base_path, session_id=None, state_event_callback=None, filter_state_event_callback=None):
         super(SyncRocksDbStore, self).__init__(base_path, session_id=session_id)
 
-        factory = RocksDbStoreFactory(self.session_path, binary=True)
-        prefix_factory = RocksDbStoreAdder(factory, 'sync')
+        self.factory = RocksDbStoreFactory(self.session_path, binary=True)
+        prefix_factory = RocksDbStoreAdder(self.factory, 'sync')
         self.setup_sync_state(prefix_factory, state_event_callback)
 
-        prefix_factory = RocksDbStoreAdder(factory, 'filter')
+        prefix_factory = RocksDbStoreAdder(self.factory, 'filter')
         self.setup_filter_state(prefix_factory, filter_state_event_callback)
 
         self.session_id = os.path.basename(self.session_path)
         logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
 
-        self.target_db = RocksDbStoreAdder(factory, '.stat').add('target')
+        self.target_db = RocksDbStoreAdder(self.factory, '.stat').add('target')
 
 
     def get_target(self):
@@ -55,3 +55,8 @@ class SyncRocksDbStore(SyncStore):
 
     def set_target(self, v):
         self.target_db.put('target')
+
+
+    def disconnect(self):
+        super(SyncRocksDbStore, self).disconnect()
+        self.factory.close()
