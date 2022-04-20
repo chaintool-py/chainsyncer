@@ -1,5 +1,5 @@
 confini~=0.6.0
 semver==2.13.0
 hexathon~=0.1.5
-chainlib>=0.1.0b1,<=0.1.0
-shep>=0.2.0rc1,<0.3.0
+chainlib>=0.1.0b1,<0.2.0
+shep>=0.2.1rc1,<0.3.0
