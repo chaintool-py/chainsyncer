@@ -40,8 +40,8 @@ class TestFilter(unittest.TestCase):
         self.conn = MockConn()
 
 
-    def tearDown(self):
-        shutil.rmtree(self.path)
+#    def tearDown(self):
+#        shutil.rmtree(self.path)
 
 
     def test_filter_basic(self):

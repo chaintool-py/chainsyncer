@@ -7,7 +7,7 @@ import os
 logg = logging.getLogger(__name__)
 
 
-re_processedname = r'^_?[A-Z,_]*$'
+re_processedname = r'^_?[A-Z,\.]*$'
 
 # TODO: properly clarify interface shared with syncfsstore, move to filter module?
 class SyncState:
@@ -74,7 +74,6 @@ class SyncState:
                 self.__syncs[v] = True
             if self.scan_path != None:
                 for v in os.listdir(self.scan_path):
-                    logg.debug('sync {} try {}'.format(self.scan_path, v))
                     if re.match(re_processedname, v):
                         k = None
                         try:
