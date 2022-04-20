@@ -267,3 +267,12 @@ class MockChainInterfaceConn(MockConn):
 
     def handle_receipt(self, hsh):
         return {}
+
+
+class MockItem:
+
+    def __init__(self, target, offset, cursor, state_key):
+        self.target = target
+        self.offset = offset
+        self.cursor = cursor
+        self.state_key = state_key

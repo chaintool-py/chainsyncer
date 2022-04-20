@@ -50,13 +50,17 @@ class SyncRocksDbStore(SyncStore):
 
 
     def get_target(self):
-        self.target_db.get('target')
+        v = self.target_db.get('target')
+        if v != None:
+            self.target = int(v)
 
 
     def set_target(self, v):
-        self.target_db.put('target')
+        self.target_db.put('target', str(v))
+        self.target = v
 
 
-    def disconnect(self):
-        super(SyncRocksDbStore, self).disconnect()
+    def stop(self, item):
+        if item != None:
+            super(SyncRocksDbStore, self).stop(item)
         self.factory.close()

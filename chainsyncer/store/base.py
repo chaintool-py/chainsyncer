@@ -228,8 +228,6 @@ class SyncStore:
             state_bytes = sync_state_serialize(item.cursor, 0, -1)
             self.state.put(str(item.cursor), state_bytes)
 
-        logg.debug('item {}'.format(self.state.state(item.state_key)))
-
 
     def load(self, target):
         self.state.sync(self.state.NEW)

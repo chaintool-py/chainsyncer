@@ -14,7 +14,10 @@ from chainsyncer.error import (
         IncompleteFilterError,
         SyncDone,
         )
-from chainsyncer.unittest import MockFilter
+from chainsyncer.unittest import (
+        MockFilter,
+        MockItem,
+        )
 
 logg = logging.getLogger(__name__)
 
@@ -50,6 +53,7 @@ class TestStoreBase(unittest.TestCase):
 
 
     def t_default(self):
+        bogus_item = MockItem(0, 0, 0, 0)
         store = self.store_factory()
         
         fp = os.path.join(self.path, store.session_id)
@@ -66,19 +70,19 @@ class TestStoreBase(unittest.TestCase):
         fpd = os.path.realpath(fpd)
         self.assertEqual(fpd, fp)
 
-        store.disconnect()
+        store.stop(bogus_item)
         store = self.store_factory()
         fpr = os.path.join(self.path, session_id)
         self.assertEqual(fp, fpr)
         self.assertTrue(store.is_default)
 
-        store.disconnect()
+        store.stop(bogus_item)
         store = self.store_factory('default')
         fpr = os.path.join(self.path, session_id)
         self.assertEqual(fp, fpr)
         self.assertTrue(store.is_default)
 
-        store.disconnect()
+        store.stop(bogus_item)
         store = self.store_factory('foo')
         fpf = os.path.join(self.path, 'foo')
         st = os.stat(fpf)
@@ -87,11 +91,12 @@ class TestStoreBase(unittest.TestCase):
 
 
     def t_store_start(self):
+        bogus_item = MockItem(0, 0, 0, 0)
         store = self.store_factory()
         store.start(42)
         self.assertTrue(store.first)
 
-        store.disconnect()
+        store.stop(bogus_item)
         store = self.store_factory()
         store.start()
         self.assertFalse(store.first)
@@ -221,13 +226,13 @@ class TestStoreBase(unittest.TestCase):
         o.next(advance_block=True)
         session.stop(o)
 
-        store.disconnect()
         store = self.store_factory('foo')
         store.start()
         o = store.get(2)
 
 
     def t_sync_history_interrupted(self):
+        bogus_item = MockItem(0, 0, 0, 0)
         store = self.store_factory('foo')
         session = SyncSession(store)
 
@@ -237,7 +242,7 @@ class TestStoreBase(unittest.TestCase):
         o.next(advance_block=True)
         session.stop(o)
 
-        store.disconnect()
+        store.stop(bogus_item)
         store = self.store_factory('foo')
         store.start()
         o = store.get(0)
@@ -246,8 +251,7 @@ class TestStoreBase(unittest.TestCase):
         o.next(advance_block=True)
         o.next(advance_block=True)
 
-        session.stop(o)
-        store.disconnect()
+        store.stop(bogus_item)
         store = self.store_factory('foo')
         store.start()
         self.assertEqual(o.cursor, 4)
