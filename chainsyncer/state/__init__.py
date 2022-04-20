@@ -1,1 +1,1 @@
-from .base import SyncState
+from .base import FilterState

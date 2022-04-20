@@ -4,7 +4,7 @@ import logging
 # local imports
 from shep.persist import PersistedState
 from shep.error import StateInvalid
-from chainsyncer.state import SyncState
+from chainsyncer.state import FilterState
 from chainsyncer.error import (
         LockError,
         FilterDone,
@@ -165,7 +165,7 @@ class SyncStore:
 
     def setup_filter_state(self, factory, event_callback):
         filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=event_callback)
-        self.filter_state = SyncState(filter_state_backend, scan=factory.ls)
+        self.filter_state = FilterState(filter_state_backend, scan=factory.ls)
         self.filters = []
 
 

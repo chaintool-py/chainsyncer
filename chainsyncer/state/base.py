@@ -10,7 +10,7 @@ logg = logging.getLogger(__name__)
 re_processedname = r'^_?[A-Z,\.]*$'
 
 # TODO: properly clarify interface shared with syncfsstore, move to filter module?
-class SyncState:
+class FilterState:
 
     def __init__(self, state_store, scan=None):
         self.state_store = state_store

@@ -6,7 +6,7 @@ import logging
 
 # local imports
 from chainsyncer.session import SyncSession
-from chainsyncer.state import SyncState
+from chainsyncer.state import FilterState
 from chainsyncer.store.fs import SyncFsStore
 from chainsyncer.unittest import (
         MockStore,
@@ -30,13 +30,13 @@ class TestSync(unittest.TestCase):
 
     def test_basic(self):
         store = MockStore(6)
-        state = SyncState(store)
+        state = FilterState(store)
         session = SyncSession(state)
 
 
     def test_sum(self):
         store = MockStore(6)
-        state = SyncState(store)
+        state = FilterState(store)
 
         b = b'\x2a' * 32
         fltr = MockFilter('foo', z=b)
@@ -57,14 +57,14 @@ class TestSync(unittest.TestCase):
 
     def test_session_start(self):
         store = MockStore(6)
-        state = SyncState(store)
+        state = FilterState(store)
         session = SyncSession(state)
         session.start()
        
 
     def test_state_dynamic(self):
         store = MockStore()
-        state = SyncState(store)
+        state = FilterState(store)
 
         b = b'\x0d' * 32
         fltr = MockFilter(name='foo', z=b)
