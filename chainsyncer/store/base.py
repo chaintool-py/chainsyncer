@@ -1,4 +1,5 @@
 # standard imports
+import os
 import logging
 
 # local imports
@@ -145,7 +146,7 @@ class SyncItem:
 
 class SyncStore:
 
-    def __init__(self, session_id=None):
+    def __init__(self, path, session_id=None):
         self.session_id = None
         self.session_path = None
         self.is_default = False
@@ -155,6 +156,16 @@ class SyncStore:
         self.item_keys = []
         self.started = False
         self.thresholds = []
+        self.default_path = os.path.join(path, 'default')
+
+        if session_id == None:
+            self.session_path = os.path.realpath(self.default_path)
+            self.is_default = True
+        else:
+            if session_id == 'default':
+                self.is_default = True
+            given_path = os.path.join(path, session_id)
+            self.session_path = os.path.realpath(given_path)
 
 
     def setup_sync_state(self, factory, event_callback):

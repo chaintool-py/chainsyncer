@@ -18,18 +18,7 @@ logg = logging.getLogger(__name__)
 class SyncFsStore(SyncStore):
 
     def __init__(self, base_path, session_id=None, state_event_callback=None, filter_state_event_callback=None):
-        super(SyncFsStore, self).__init__(session_id=session_id)
-
-        default_path = os.path.join(base_path, 'default')
-
-        if session_id == None:
-            self.session_path = os.path.realpath(default_path)
-            self.is_default = True
-        else:
-            if session_id == 'default':
-                self.is_default = True
-            given_path = os.path.join(base_path, session_id)
-            self.session_path = os.path.realpath(given_path)
+        super(SyncFsStore, self).__init__(base_path, session_id=session_id)
 
         create_path = False
         try:
@@ -38,9 +27,9 @@ class SyncFsStore(SyncStore):
             create_path = True
 
         if create_path:
-            self.__create_path(base_path, default_path, session_id=session_id)
-        self.session_id = os.path.basename(self.session_path)
+            self.__create_path(base_path, self.default_path, session_id=session_id)
 
+        self.session_id = os.path.basename(self.session_path)
         logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
 
         base_sync_path = os.path.join(self.session_path, 'sync')
