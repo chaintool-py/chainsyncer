@@ -2,7 +2,9 @@
 import logging
 
 # local imports
+from shep.persist import PersistedState
 from shep.error import StateInvalid
+from chainsyncer.state import SyncState
 from chainsyncer.error import (
         LockError,
         FilterDone,
@@ -152,6 +154,18 @@ class SyncStore:
         self.items = {}
         self.item_keys = []
         self.started = False
+
+
+    def setup_sync_state(self, factory, event_callback):
+        self.state = PersistedState(factory.add, 2, event_callback=event_callback)
+        self.state.add('SYNC')
+        self.state.add('DONE')
+
+
+    def setup_filter_state(self, factory, event_callback):
+        filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=event_callback)
+        self.filter_state = SyncState(filter_state_backend, scan=factory.ls)
+        self.filters = []
 
 
     def register(self, fltr):

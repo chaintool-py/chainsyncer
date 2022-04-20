@@ -5,10 +5,8 @@ import logging
 
 # external imports
 from shep.store.file import SimpleFileStoreFactory
-from shep.persist import PersistedState
 
 # local imports 
-from chainsyncer.state import SyncState
 from chainsyncer.store import (
         SyncItem,
         SyncStore,
@@ -45,17 +43,14 @@ class SyncFsStore(SyncStore):
 
         logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
 
-        factory = SimpleFileStoreFactory(self.session_path, binary=True)
-        self.state = PersistedState(factory.add, 2, event_callback=state_event_callback)
-        self.state.add('SYNC')
-        self.state.add('DONE')
+        base_sync_path = os.path.join(self.session_path, 'sync')
+        factory = SimpleFileStoreFactory(base_sync_path, binary=True)
+        self.setup_sync_state(factory, state_event_callback)
 
         base_filter_path = os.path.join(self.session_path, 'filter')
         factory = SimpleFileStoreFactory(base_filter_path, binary=True)
-        filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=filter_state_event_callback)
-        self.filter_state = SyncState(filter_state_backend, scan_path=base_filter_path)
-        self.filters = [] # used by SyncSession
-   
+        self.setup_filter_state(factory, filter_state_event_callback)
+
 
     def __create_path(self, base_path, default_path, session_id=None):
         logg.debug('fs store path {} does not exist, creating'.format(self.session_path))

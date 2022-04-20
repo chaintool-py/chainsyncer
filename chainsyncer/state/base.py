@@ -12,7 +12,7 @@ re_processedname = r'^_?[A-Z,\.]*$'
 # TODO: properly clarify interface shared with syncfsstore, move to filter module?
 class SyncState:
 
-    def __init__(self, state_store, scan_path=None):
+    def __init__(self, state_store, scan=None):
         self.state_store = state_store
         self.digest = b'\x00' * 32
         self.summed = False
@@ -36,7 +36,7 @@ class SyncState:
         self.all = self.state_store.all
         self.started = False
 
-        self.scan_path = scan_path
+        self.scan = scan
 
 
     def __verify_sum(self, v):
@@ -72,17 +72,17 @@ class SyncState:
                 k = self.state_store.from_name(v)
                 self.state_store.sync(k)
                 self.__syncs[v] = True
-            if self.scan_path != None:
-                for v in os.listdir(self.scan_path):
-                    if re.match(re_processedname, v):
-                        k = None
-                        try:
-                            k = self.state_store.from_elements(v)
-                            self.state_store.alias(v, k)
-                        except ValueError:
-                            k = self.state_store.from_name(v)
-                        self.state_store.sync(k)
-                        self.__syncs[v] = True
+            if self.scan != None:
+                ks = self.scan()
+                for v in ks: #os.listdir(self.scan_path):
+                    k = None
+                    try:
+                        k = self.state_store.from_elements(v)
+                        self.state_store.alias(v, k)
+                    except ValueError:
+                        k = self.state_store.from_name(v)
+                    self.state_store.sync(k)
+                    self.__syncs[v] = True
             self.synced = True
         self.connected = True
 
