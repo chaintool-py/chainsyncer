@@ -154,6 +154,7 @@ class SyncStore:
         self.items = {}
         self.item_keys = []
         self.started = False
+        self.thresholds = []
 
 
     def setup_sync_state(self, factory, event_callback):
@@ -166,6 +167,14 @@ class SyncStore:
         filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=event_callback)
         self.filter_state = SyncState(filter_state_backend, scan=factory.ls)
         self.filters = []
+
+
+    def set_target(self, v):
+        pass
+
+
+    def get_target(self):
+        return None
 
 
     def register(self, fltr):
@@ -209,6 +218,46 @@ class SyncStore:
             self.state.put(str(item.cursor), state_bytes)
 
         logg.debug('item {}'.format(self.state.state(item.state_key)))
+
+
+    def load(self, target):
+        self.state.sync(self.state.NEW)
+        self.state.sync(self.state.SYNC)
+
+        thresholds_sync = []
+        for v in self.state.list(self.state.SYNC):
+            block_number = int(v)
+            thresholds_sync.append(block_number)
+            logg.debug('queue resume {}'.format(block_number))
+        thresholds_new = []
+        for v in self.state.list(self.state.NEW):
+            block_number = int(v)
+            thresholds_new.append(block_number)
+            logg.debug('queue new range {}'.format(block_number))
+
+        thresholds_sync.sort()
+        thresholds_new.sort()
+        thresholds = thresholds_sync + thresholds_new
+        lim = len(thresholds) - 1
+
+        for i in range(len(thresholds)):
+            item_target = target
+            if i < lim:
+                item_target = thresholds[i+1] 
+            o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True)
+            self.items[block_number] = o
+            self.item_keys.append(block_number)
+            logg.info('added existing {}'.format(o))
+
+        self.get_target()
+        
+        if len(thresholds) == 0:
+            if self.target != None:
+                logg.warning('sync "{}" is already done, nothing to do'.format(self.session_id))
+            else:
+                logg.info('syncer first run target {}'.format(target))
+                self.first = True
+                self.set_target(target)
 
 
     def get(self, k):

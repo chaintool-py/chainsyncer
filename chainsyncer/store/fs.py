@@ -66,54 +66,21 @@ class SyncFsStore(SyncStore):
                 pass
 
 
-    def load(self, target):
-        self.state.sync(self.state.NEW)
-        self.state.sync(self.state.SYNC)
-
-        thresholds_sync = []
-        for v in self.state.list(self.state.SYNC):
-            block_number = int(v)
-            thresholds_sync.append(block_number)
-            logg.debug('queue resume {}'.format(block_number))
-        thresholds_new = []
-        for v in self.state.list(self.state.NEW):
-            block_number = int(v)
-            thresholds_new.append(block_number)
-            logg.debug('queue new range {}'.format(block_number))
-
-        thresholds_sync.sort()
-        thresholds_new.sort()
-        thresholds = thresholds_sync + thresholds_new
-        lim = len(thresholds) - 1
-
-        logg.debug('thresholds {}'.format(thresholds))
-        for i in range(len(thresholds)):
-            item_target = target
-            if i < lim:
-                item_target = thresholds[i+1] 
-            o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True)
-            self.items[block_number] = o
-            self.item_keys.append(block_number)
-            logg.info('added existing {}'.format(o))
-
+    def get_target(self):
         fp = os.path.join(self.session_path, 'target')
-        have_target = False
         try:
             f = open(fp, 'r')
             v = f.read()
             f.close()
             self.target = int(v)
-            have_target = True
         except FileNotFoundError as e:
+            logg.debug('cant find target {} {}'.format(fp, e))
             pass
 
-        if len(thresholds) == 0:
-            if have_target:
-                logg.warning('sync "{}" is already done, nothing to do'.format(self.session_id))
-            else:
-                logg.info('syncer first run target {}'.format(target))
-                self.first = True
-                f = open(fp, 'w')
-                f.write(str(target))
-                f.close()
-                self.target = target
+
+    def set_target(self, v):
+        fp = os.path.join(self.session_path, 'target')
+        f = open(fp, 'w')
+        f.write(str(v))
+        f.close()
+        self.target = v
