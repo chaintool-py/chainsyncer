@@ -96,9 +96,11 @@ class FilterState:
                     k = None
                     try:
                         k = self.state_store.from_elements(v)
+                        logg.debug('scan from elements {} {}'.format(k, v))
                         self.state_store.alias(v, k)
                     except ValueError:
                         k = self.state_store.from_name(v)
+                        logg.debug('scan from name {} {}'.format(k, v))
                     self.state_store.sync(k)
                     self.__syncs[v] = True
             self.synced = True
