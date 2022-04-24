@@ -1,5 +1,6 @@
 * 0.3.3
 	- Include shep persistent state bootstrap sync
+	- Add chainsyncer extras
 * 0.3.2
 	- Implement rocksdb backend
 * 0.3.1

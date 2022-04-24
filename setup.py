@@ -26,5 +26,7 @@ setup(
     install_requires=requirements,
     extras_require={
         'sql': sql_requirements,
+        'rocksdb': ['shep[rocksdb]~=0.2.2'],
+        'redis': ['shep[redis]~=0.2.2'],
     }
     )
