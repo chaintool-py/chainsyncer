@@ -121,7 +121,7 @@ class SyncItem:
     def release(self, interrupt=False):
         if self.skip_filter:
             return False
-        if interrupt:
+        if interrupt == True:
             self.filter_state.unset(self.state_key, self.filter_state.from_name('LOCK'))
             self.filter_state.set(self.state_key, self.filter_state.from_name('INTERRUPT'))
             self.filter_state.set(self.state_key, self.filter_state.from_name('DONE'))

@@ -1,8 +1,11 @@
 # standard imports
 import uuid
+import logging
 
 # local imports
 from chainsyncer.error import FilterDone
+
+logg = logging.getLogger(__name__)
 
 
 class SyncSession:
@@ -29,6 +32,7 @@ class SyncSession:
     def filter(self, conn, block, tx):
         self.session_store.connect()
         for fltr in self.filters:
+            logg.debug('executing filter {}'.format(fltr))
             self.item.advance()
             interrupt = fltr.filter(conn, block, tx)
             if not self.item.release(interrupt=interrupt):
