@@ -32,3 +32,9 @@ class SyncMemStore(SyncStore):
 
     def get_target(self):
         return self.target
+
+
+    def stop(self, item):
+        if item != None:
+            super(SyncRocksDbStore, self).stop(item)
+        logg.info('I am an in-memory only state store. I am shutting down now, so all state will now be discarded.')
