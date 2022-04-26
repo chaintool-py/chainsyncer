@@ -4,6 +4,7 @@ import logging
 
 # local imports
 from shep.persist import PersistedState
+from shep import State
 from shep.error import StateInvalid
 from chainsyncer.filter import FilterState
 from chainsyncer.error import (
@@ -168,15 +169,22 @@ class SyncStore:
             self.session_path = os.path.realpath(given_path)
 
 
-    def setup_sync_state(self, factory, event_callback):
-        self.state = PersistedState(factory.add, 2, event_callback=event_callback)
+    def setup_sync_state(self, factory=None, event_callback=None):
+        if factory == None:
+            self.state = State(2, event_callback=event_callback)
+        else:
+            self.state = PersistedState(factory.add, 2, event_callback=event_callback)
         self.state.add('SYNC')
         self.state.add('DONE')
 
 
-    def setup_filter_state(self, factory, event_callback):
-        filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=event_callback)
-        self.filter_state = FilterState(filter_state_backend, scan=factory.ls)
+    def setup_filter_state(self, factory=None, event_callback=None):
+        if factory == None:
+            filter_state_backend = State(0, check_alias=False, event_callback=event_callback)
+            self.filter_state = FilterState(filter_state_backend)
+        else:
+            filter_state_backend = PersistedState(factory.add, 0, check_alias=False, event_callback=event_callback)
+            self.filter_state = FilterState(filter_state_backend, scan=factory.ls)
         self.filters = []
 
 
@@ -202,7 +210,7 @@ class SyncStore:
         if self.first:
             state_bytes = sync_state_serialize(offset, 0, target)
             block_number_str = str(offset)
-            self.state.put(block_number_str, state_bytes)
+            self.state.put(block_number_str, contents=state_bytes)
             self.filter_state.put(block_number_str)
             o = SyncItem(offset, target, self.state, self.filter_state)
             self.items[offset] = o
@@ -226,7 +234,7 @@ class SyncStore:
             self.state.move(item.state_key, self.state.DONE)
 
             state_bytes = sync_state_serialize(item.cursor, 0, -1)
-            self.state.put(str(item.cursor), state_bytes)
+            self.state.put(str(item.cursor), contents=state_bytes)
 
 
     def load(self, target):

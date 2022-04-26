@@ -7,10 +7,7 @@ import logging
 from shep.store.file import SimpleFileStoreFactory
 
 # local imports 
-from chainsyncer.store import (
-        SyncItem,
-        SyncStore,
-        )
+from chainsyncer.store import SyncStore
 
 logg = logging.getLogger(__name__)
 
