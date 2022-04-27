@@ -4,6 +4,9 @@ from chainsyncer.cli import SyncFlag
 
 def process_config(config, args, flags):
         args_override = {}
+
+        args_override['SYNCER_BACKEND'] = getattr(args, 'backend')
+
         if flags & SyncFlag.RANGE:
             args_override['SYNCER_OFFSET'] = getattr(args, 'offset')
             args_override['SYNCER_LIMIT'] = getattr(args, 'until')

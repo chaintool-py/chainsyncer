@@ -1,3 +1,6 @@
+* 0.3.7
+	- Remove hard eth dependency in settings rendering
+	- Add unlock cli tool
 * 0.3.6
 	- Add cli arg processing and settings renderer
 * 0.3.5

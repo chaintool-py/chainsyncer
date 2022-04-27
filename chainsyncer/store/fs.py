@@ -33,9 +33,13 @@ class SyncFsStore(SyncStore):
         factory = SimpleFileStoreFactory(base_sync_path, binary=True)
         self.setup_sync_state(factory, state_event_callback)
 
+        self.setup_filter_state(callback=filter_state_event_callback)
+
+
+    def setup_filter_state(self, callback=None):
         base_filter_path = os.path.join(self.session_path, 'filter')
         factory = SimpleFileStoreFactory(base_filter_path, binary=True)
-        self.setup_filter_state(factory, filter_state_event_callback)
+        super(SyncFsStore, self).setup_filter_state(factory, callback)
 
 
     def __create_path(self, base_path, default_path, session_id=None):

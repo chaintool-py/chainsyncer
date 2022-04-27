@@ -2,7 +2,6 @@
 import logging
 
 # external imports
-from chainlib.eth.block import block_latest
 from hexathon import (
         to_int as hex_to_int,
         strip_0x,
@@ -13,8 +12,17 @@ logg = logging.getLogger(__name__)
 
 class ChainsyncerSettings:
 
+    def __init__(self):
+        self.o = {}
+        self.get = self.o.get
+
+
+    def process_sync_backend(self, config):
+        self.o['SYNCER_BACKEND'] = config.get('SYNCER_BACKEND')
+
+
     def process_sync_range(self, config):
-        o = block_latest()
+        o = self.o['SYNCER_INTERFACE'].block_latest()
         r = self.o['RPC'].do(o)
         block_offset = int(strip_0x(r), 16) + 1
         logg.info('network block height at startup is {}'.format(block_offset))

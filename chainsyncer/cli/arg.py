@@ -10,3 +10,5 @@ def process_flags(argparser, flags):
     if flags & SyncFlag.HEAD > 0:
         argparser.add_argument('--head', action='store_true', help='Start from latest block as offset')
         argparser.add_argument('--keep-alive', action='store_true', help='Do not stop syncing when caught up')
+
+    argparser.add_argument('--backend', type=str, help='Backend to use for state store')
