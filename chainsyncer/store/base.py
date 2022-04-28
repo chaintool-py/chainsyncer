@@ -35,7 +35,7 @@ def sync_state_deserialize(b):
 # NOT thread safe
 class SyncItem:
     
-    def __init__(self, offset, target, sync_state, filter_state, started=False, ignore_invalid=False):
+    def __init__(self, offset, target, sync_state, filter_state, started=False, ignore_lock=False):
         self.offset = offset
         self.target = target
         self.sync_state = sync_state
@@ -47,7 +47,7 @@ class SyncItem:
 
         (self.cursor, self.tx_cursor, self.target) = sync_state_deserialize(v)
 
-        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') and not ignore_invalid:
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0 and not ignore_lock:
             raise LockError(self.state_key)
 
         self.count = len(self.filter_state.all(pure=True)) - 4
@@ -65,11 +65,12 @@ class SyncItem:
             raise FilterDone(self.state_key)
 
 
-    def reset(self):
-        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
-            raise LockError('reset attempt on {} when state locked'.format(self.state_key))
-        if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') == 0:
-            raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
+    def reset(self, check_incomplete=True):
+        if check_incomplete:
+            if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
+                raise LockError('reset attempt on {} when state locked'.format(self.state_key))
+            if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') == 0:
+                raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
         self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
 
         
@@ -102,13 +103,16 @@ class SyncItem:
         v = self.filter_state.state(self.state_key)
 
 
-    def advance(self):
+    def advance(self, ignore_lock=False):
         if self.skip_filter:
             raise FilterDone()
         self.__check_done()
 
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
-            raise LockError('advance attempt on {} when state locked'.format(self.state_key))
+            if ignore_lock:
+                self.filter_state.unset(self.state_key, self.filter_state.from_name('LOCK'))
+            else:
+                raise LockError('advance attempt on {} when state locked'.format(self.state_key))
         done = False
         try:
             self.filter_state.next(self.state_key)
@@ -192,20 +196,20 @@ class SyncStore:
         self.filter_state.register(fltr)
 
 
-    def start(self, offset=0, target=-1):
+    def start(self, offset=0, target=-1, ignore_lock=False):
         if self.started:
             return
 
         self.save_filter_list() 
         
-        self.load(target)
+        self.load(target, ignore_lock=ignore_lock)
 
         if self.first:
             state_bytes = sync_state_serialize(offset, 0, target)
             block_number_str = str(offset)
             self.state.put(block_number_str, contents=state_bytes)
             self.filter_state.put(block_number_str)
-            o = SyncItem(offset, target, self.state, self.filter_state)
+            o = SyncItem(offset, target, self.state, self.filter_state, ignore_lock=ignore_lock)
             self.items[offset] = o
             self.item_keys.append(offset)
         elif offset > 0:
@@ -230,7 +234,7 @@ class SyncStore:
             self.state.put(str(item.cursor), contents=state_bytes)
 
 
-    def load(self, target):
+    def load(self, target, ignore_lock=False):
         self.state.sync(self.state.NEW)
         self.state.sync(self.state.SYNC)
 
@@ -254,7 +258,7 @@ class SyncStore:
             item_target = target
             if i < lim:
                 item_target = thresholds[i+1] 
-            o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True)
+            o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True, ignore_lock=ignore_lock)
             self.items[block_number] = o
             self.item_keys.append(block_number)
             logg.info('added existing {}'.format(o))
@@ -271,7 +275,6 @@ class SyncStore:
 
 
     def get(self, k):
-        logg.debug('items {}'.format(self.items.keys()))
         return self.items[k]
 
 
@@ -289,3 +292,18 @@ class SyncStore:
 
     def disconnect(self):
         self.filter_state.disconnect()
+
+
+    def save_filter_list(self):
+        raise NotImplementedError()
+       
+
+    def load_filter_list(self):
+        raise NotImplementedError()
+
+
+    def peek_next_filter(self):
+        pass
+
+    def peek_current_filter(self):
+        pass

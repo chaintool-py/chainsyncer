@@ -77,4 +77,3 @@ class SyncRocksDbStore(SyncStore):
         v = self.target_db.get('filter_list')
         v = v.decode('utf-8')
         return v.split(',')
-

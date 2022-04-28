@@ -44,6 +44,8 @@ class FilterState:
 
         self.state = self.state_store.state
         self.put = self.state_store.put
+        self.mask = self.state_store.mask
+        self.name = self.state_store.name
         self.set = self.state_store.set
         self.next = self.state_store.next
         self.move = self.state_store.move

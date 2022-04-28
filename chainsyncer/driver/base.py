@@ -142,11 +142,3 @@ class SyncDriver:
     def get(self, conn):
         raise NotImplementedError()
 
-
-    def save_filter_list(self):
-        raise NotImplementedError()
-       
-
-    def load_filter_list(self):
-        raise NotImplementedError()
-
