@@ -47,7 +47,8 @@ class SyncItem:
 
         (self.cursor, self.tx_cursor, self.target) = sync_state_deserialize(v)
 
-        if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0 and not ignore_lock:
+        filter_state = self.filter_state.state(self.state_key)
+        if filter_state  & self.filter_state.from_name('LOCK') > 0 and not ignore_lock:
             raise LockError(self.state_key)
 
         self.count = len(self.filter_state.all(pure=True)) - 4
@@ -56,13 +57,23 @@ class SyncItem:
             self.skip_filter = True
         elif not started:
             self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
-
+        
 
     def __check_done(self):
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('INTERRUPT') > 0:
             raise InterruptError(self.state_key)
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') > 0:
             raise FilterDone(self.state_key)
+
+
+    def resume(self):
+        filter_state = self.filter_state.state(self.state_key)
+        if filter_state > 0x0f:
+            filter_state_part = self.filter_state.mask(filter_state, 0x0f)
+            if len(self.filter_state.elements(filter_state)) == 1:
+                logg.info('resume execution on state {} ({})'.format(self.filter_state.name(filter_state_part), filter_state_part))
+                lock_state = self.filter_state.from_name('LOCK')
+                self.filter_state.set(lock_state)
 
 
     def reset(self, check_incomplete=True):
@@ -210,6 +221,7 @@ class SyncStore:
             self.state.put(block_number_str, contents=state_bytes)
             self.filter_state.put(block_number_str)
             o = SyncItem(offset, target, self.state, self.filter_state, ignore_lock=ignore_lock)
+            o.resume()
             self.items[offset] = o
             self.item_keys.append(offset)
         elif offset > 0:
@@ -259,6 +271,7 @@ class SyncStore:
             if i < lim:
                 item_target = thresholds[i+1] 
             o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True, ignore_lock=ignore_lock)
+            o.resume()
             self.items[block_number] = o
             self.item_keys.append(block_number)
             logg.info('added existing {}'.format(o))

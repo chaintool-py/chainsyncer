@@ -135,9 +135,6 @@ def main():
         else:
             locked_item.advance(ignore_lock=True)
             store.filter_state.unset(locked_item_key, lock_state)
-            #next_filter = filter_list[filter_pos]
-            #next_state = store.filter_state.from_name(next_filter)
-            #store.filter_state.move(next_state)
     else:
         filter_mask = 0xf
         filter_state = store.filter_state.mask(locked_state, filter_mask)

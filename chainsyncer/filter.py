@@ -43,6 +43,7 @@ class FilterState:
         self.state_store.add('RESET')
 
         self.state = self.state_store.state
+        self.elements = self.state_store.elements
         self.put = self.state_store.put
         self.mask = self.state_store.mask
         self.name = self.state_store.name
