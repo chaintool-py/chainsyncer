@@ -13,6 +13,7 @@ from shep.persist import PersistedState
 # local imports
 import chainsyncer.cli
 from chainsyncer.settings import ChainsyncerSettings
+from chainsyncer.store import SyncStore
 from chainsyncer.filter import FilterState
 
 logging.basicConfig(level=logging.WARNING)
@@ -37,6 +38,8 @@ logg.debug('config loaded:\n{}'.format(config))
 
 settings = ChainsyncerSettings()
 settings.process_sync_backend(config)
+logg.debug('settings:\n{}'.format(str(settings)))
+
 
 
 def main():
@@ -51,13 +54,24 @@ def main():
         syncer_store_class = getattr(syncer_store_module, 'RocksdbStoreFactory')
     else:
         raise NotImplementedError('cannot use backend: {}'.format(config.get('SYNCER_BACKEND')))
-        
+       
     state_dir = config.get('_STATE_DIR')
 
     factory = syncer_store_class(state_dir)
-    base_state = PersistedState(factory.add, 0, check_alias=False)
-    state = FilterState(base_state, scan=True)
-    print(state)
+    store = SyncStore(state_dir, no_session=True)
+    #base_state = PersistedState(factory.add, 0, check_alias=False)
+    #state = FilterState(base_state, scan=True)
+    store.setup_filter_state(factory=factory)
+    store.connect()
+    store.filter_state.scan()
+    locked_state = store.filter_state.list(store.filter_state.from_name('RESET'))
+    print(locked_state)
+#    if locked_state == None:
+#        sys.stderr.write('state in {} backend "{}" is not locked\n'.format(state_dir, config.get('SYNCER_BACKEND')))
+#        sys.exit(1)
+
+
+
 
 if __name__ == '__main__':
     main()

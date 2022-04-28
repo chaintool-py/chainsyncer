@@ -43,8 +43,8 @@ class SyncRocksDbStore(SyncStore):
         prefix_factory = RocksDbStoreAdder(self.factory, 'filter')
         self.setup_filter_state(prefix_factory, filter_state_event_callback)
 
-        self.session_id = os.path.basename(self.session_path)
-        logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
+        #self.session_id = os.path.basename(self.session_path)
+        #logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
 
         self.target_db = RocksDbStoreAdder(self.factory, '.stat').add('target')
 

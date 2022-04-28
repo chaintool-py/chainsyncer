@@ -148,7 +148,7 @@ class SyncItem:
 class SyncStore:
 
     def __init__(self, path, session_id=None):
-        self.session_id = None
+        self.session_id = session_id
         self.session_path = None
         self.is_default = False
         self.first = False
@@ -157,16 +157,7 @@ class SyncStore:
         self.item_keys = []
         self.started = False
         self.thresholds = []
-        self.default_path = os.path.join(path, 'default')
-
-        if session_id == None:
-            self.session_path = os.path.realpath(self.default_path)
-            self.is_default = True
-        else:
-            if session_id == 'default':
-                self.is_default = True
-            given_path = os.path.join(path, session_id)
-            self.session_path = os.path.realpath(given_path)
+        self.session_path = path
 
 
     def setup_sync_state(self, factory=None, event_callback=None):
@@ -278,6 +269,7 @@ class SyncStore:
 
 
     def get(self, k):
+        logg.debug('items {}'.format(self.items.keys()))
         return self.items[k]
 
 

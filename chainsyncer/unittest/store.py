@@ -5,6 +5,7 @@ import unittest
 import shutil
 import tempfile
 import logging
+import uuid
 
 # local imports
 from chainsyncer.session import SyncSession
@@ -35,7 +36,10 @@ def filter_change_callback(k, old_state, new_state):
 class TestStoreBase(unittest.TestCase):
 
     def setUp(self):
-        self.path = tempfile.mkdtemp()
+        self.base_path = tempfile.mkdtemp()
+        self.session_id = str(uuid.uuid4())
+        self.path = os.path.join(self.base_path, self.session_id)
+        os.makedirs(self.path)
         self.store_factory = None
         self.persist = True
 
@@ -66,60 +70,25 @@ class TestStoreBase(unittest.TestCase):
     def t_default(self):
         bogus_item = MockItem(0, 0, 0, 0)
         store = self.store_factory()
-        
-        fp = os.path.join(self.path, store.session_id)
+
+        if store.session_path == None:
+            return
+
+        #fp = os.path.join(self.path, store.session_id)
+        fp = self.path
         session_id = store.session_id
         st = None
-        try:
-            st = os.stat(fp)
-        except FileNotFoundError as e:
-            logg.warning('error {} persist {}'.format(e, self.persist))
-            if self.persist:
-                raise e
+        st = os.stat(fp)
 
         if st != None: 
             self.assertTrue(stat.S_ISDIR(st.st_mode))
-            self.assertTrue(store.is_default)
-
-        fpd = os.path.join(self.path, 'default')
-        try:
-            st = os.stat(fpd)
-        except FileNotFoundError as e:
-            logg.warning('error {} persist {}'.format(e, self.persist))
-            if self.persist:
-                raise e
-        if st != None:
-            self.assertTrue(stat.S_ISDIR(st.st_mode))
-            self.assertTrue(store.is_default)
-
-        fpd = os.path.realpath(fpd)
-        self.assertEqual(fpd, fp)
+            #self.assertTrue(store.is_default)
 
         store.stop(bogus_item)
         store = self.store_factory()
-        fpr = os.path.join(self.path, session_id)
-        self.assertEqual(fp, fpr)
-        self.assertTrue(store.is_default)
-
-        store.stop(bogus_item)
-        store = self.store_factory('default')
-        fpr = os.path.join(self.path, session_id)
-        self.assertEqual(fp, fpr)
-        self.assertTrue(store.is_default)
-
-        store.stop(bogus_item)
-        store = self.store_factory('foo')
-        fpf = os.path.join(self.path, 'foo')
-        try:
-            st = os.stat(fpf)
-        except FileNotFoundError as e:
-            logg.warning('error {} persist {}'.format(e, self.persist))
-            if self.persist:
-                raise e
-        if st != None:
-            self.assertTrue(stat.S_ISDIR(st.st_mode))
-            self.assertFalse(store.is_default)
-
+        fpr = os.path.join(self.path, self.session_id)
+        self.assertEqual(fp, self.path)
+        
 
     def t_store_start(self):
         bogus_item = MockItem(0, 0, 0, 0)

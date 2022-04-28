@@ -6,16 +6,12 @@ from hexathon import (
         to_int as hex_to_int,
         strip_0x,
         )
+from chainlib.settings import ChainSettings
 
 logg = logging.getLogger(__name__)
 
 
-class ChainsyncerSettings:
-
-    def __init__(self):
-        self.o = {}
-        self.get = self.o.get
-
+class ChainsyncerSettings(ChainSettings):
 
     def process_sync_backend(self, config):
         self.o['SYNCER_BACKEND'] = config.get('SYNCER_BACKEND')

@@ -14,10 +14,7 @@ logg = logging.getLogger(__name__)
 class SyncMemStore(SyncStore):
 
     def __init__(self, session_id=None, state_event_callback=None, filter_state_event_callback=None):
-        super(SyncMemStore, self).__init__('/dev/null', session_id=session_id)
-
-        self.session_id = os.path.basename(self.session_path)
-        logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
+        super(SyncMemStore, self).__init__(None, session_id=session_id)
 
         factory = None
         self.setup_sync_state(factory, state_event_callback)
@@ -36,5 +33,5 @@ class SyncMemStore(SyncStore):
 
     def stop(self, item):
         if item != None:
-            super(SyncRocksDbStore, self).stop(item)
+            super(SyncMemStore, self).stop(item)
         logg.info('I am an in-memory only state store. I am shutting down now, so all state will now be discarded.')

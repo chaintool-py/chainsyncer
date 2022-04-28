@@ -50,6 +50,7 @@ class FilterState:
         self.unset = self.state_store.unset
         self.peek = self.state_store.peek
         self.from_name = self.state_store.from_name
+        self.list = self.state_store.list
         self.state_store.sync()
         self.all = self.state_store.all
         self.started = False
@@ -93,6 +94,7 @@ class FilterState:
             if self.scan != None:
                 ks = self.scan()
                 for v in ks: #os.listdir(self.scan_path):
+                    logg.debug('ks {}'.format(v))
                     k = None
                     try:
                         k = self.state_store.from_elements(v)
