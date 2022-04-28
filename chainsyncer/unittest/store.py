@@ -50,6 +50,7 @@ class TestStoreBase(unittest.TestCase):
                 "default",
                 "store_start",
                 "store_resume",
+                "filter_list",
                 "sync_process_nofilter",
                 "sync_process_onefilter",
                 "sync_process_outoforder",
@@ -275,3 +276,26 @@ class TestStoreBase(unittest.TestCase):
         o.next(advance_block=True)
         with self.assertRaises(SyncDone):
             o.next(advance_block=True)
+
+
+    def t_filter_list(self):
+        bogus_item = MockItem(0, 0, 0, 0)
+        store = self.store_factory()
+
+        if store.session_path == None:
+            return
+
+        fltr_one = MockFilter('foo_bar')
+        store.register(fltr_one)
+
+        fltr_two = MockFilter('bar_baz')
+        store.register(fltr_two)
+
+        store.start()
+        store.stop(bogus_item)
+
+        store = self.store_factory()
+        r = store.load_filter_list() 
+
+        self.assertEqual(r[0], 'foo_bar')
+        self.assertEqual(r[1], 'bar_baz')

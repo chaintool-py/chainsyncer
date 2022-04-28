@@ -196,6 +196,8 @@ class SyncStore:
         if self.started:
             return
 
+        self.save_filter_list() 
+        
         self.load(target)
 
         if self.first:

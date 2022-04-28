@@ -35,3 +35,11 @@ class SyncMemStore(SyncStore):
         if item != None:
             super(SyncMemStore, self).stop(item)
         logg.info('I am an in-memory only state store. I am shutting down now, so all state will now be discarded.')
+
+
+    def save_filter_list(self):
+        pass
+
+
+    def load_filter_list(self):
+        return []

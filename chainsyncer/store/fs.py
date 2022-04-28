@@ -74,3 +74,25 @@ class SyncFsStore(SyncStore):
         f.write(str(v))
         f.close()
         self.target = v
+
+
+    def load_filter_list(self):
+        fltr = []
+        fp = os.path.join(self.session_path, 'filter_list')
+        f = open(fp, 'r')
+        while True:
+            v = f.readline()
+            if len(v) == 0:
+                break
+            v = v.rstrip()
+            fltr.append(v) 
+        f.close()
+        return fltr
+
+
+    def save_filter_list(self):
+        fp = os.path.join(self.session_path, 'filter_list')
+        f = open(fp, 'w')
+        for fltr in self.filters:
+            f.write(fltr.common_name() + '\n')
+        f.close()

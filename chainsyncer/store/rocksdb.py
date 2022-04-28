@@ -64,3 +64,17 @@ class SyncRocksDbStore(SyncStore):
         if item != None:
             super(SyncRocksDbStore, self).stop(item)
         self.factory.close()
+
+
+    def save_filter_list(self):
+        fltr = []
+        for v in self.filters:
+            fltr.append(v.common_name())
+        self.target_db.put('filter_list', ','.join(fltr))
+
+
+    def load_filter_list(self):
+        v = self.target_db.get('filter_list')
+        v = v.decode('utf-8')
+        return v.split(',')
+
