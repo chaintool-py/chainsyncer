@@ -107,41 +107,6 @@ def main():
     store.connect()
     store.start(ignore_lock=True)
     store.unlock_filter(not action_is_forward)
-    return
-
-    lock_state = store.filter_state.from_name('LOCK')
-    locked_item = store.filter_state.list(lock_state)
-    if len(locked_item) == 0:
-        sys.stderr.write('Sync filter in {} is not locked\n'.format(state_dir))
-        sys.exit(1)
-    elif len(locked_item) > 1:
-        sys.stderr.write('More than one locked item encountered in {}. That should never happen, so I do not know what to do next.\n'.format(state_dir))
-        sys.exit(1)
-
-    locked_item_key = locked_item[0]
-    locked_item = store.get(int(locked_item_key))
-    locked_state = store.filter_state.state(locked_item_key) - lock_state
-    locked_state_name = store.filter_state.name(locked_state)
-    logg.info('found item "{}" in locked state {}'.format(locked_item, store.filter_state.name(locked_state)))
-
-    if action_is_forward:
-        k = locked_state_name
-        filter_index = None
-        filter_index = filter_list.index(k)
-        filter_pos = filter_index + 1
-        filter_count = len(filter_list)
-        logg.debug('Locked filter {} found at position {} of {}'.format(k, filter_pos, filter_count))
-        if filter_pos == filter_count:
-            logg.info('Locked filter {} is the last filter in the list. Executing filter reset'.format(k))
-            locked_item.reset(check_incomplete=False)
-        else:
-            locked_item.advance(ignore_lock=True)
-            store.filter_state.unset(locked_item_key, lock_state)
-    else:
-        filter_mask = 0xf
-        filter_state = store.filter_state.mask(locked_state, filter_mask)
-        logg.info('Chosen action is "{}": will continue execution at previous filter {}'.format(args.action, store.filter_state.name(filter_state)))
-        store.filter_state.unset(locked_item_key, lock_state)
 
 
 if __name__ == '__main__':

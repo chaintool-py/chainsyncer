@@ -67,19 +67,6 @@ class SyncItem:
             raise FilterDone(self.state_key)
 
 
-    def resume(self):
-        return
-        filter_state = self.filter_state.state(self.state_key)
-        if filter_state > 0x0f:
-            filter_state_part = self.filter_state.mask(filter_state, 0x0f)
-            if filter_state_part > 0:
-                filter_state_part_name = self.filter_state.name(filter_state_part)
-                if filter_state_part_name[0] != '_':
-                    logg.info('resume execution on state {} ({})'.format(self.filter_state.name(filter_state_part), filter_state_part))
-                    lock_state = self.filter_state.from_name('LOCK')
-                    self.filter_state.set(self.state_key, lock_state)
-
-
     def reset(self, check_incomplete=True):
         if check_incomplete:
             if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
@@ -225,7 +212,6 @@ class SyncStore:
             self.state.put(block_number_str, contents=state_bytes)
             self.filter_state.put(block_number_str)
             o = SyncItem(offset, target, self.state, self.filter_state, ignore_lock=ignore_lock)
-            o.resume()
             k = str(offset)
             self.items[k] = o
             self.item_keys.append(k)
@@ -276,7 +262,6 @@ class SyncStore:
             if i < lim:
                 item_target = thresholds[i+1] 
             o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True, ignore_lock=ignore_lock)
-            o.resume()
             k = str(block_number)
             self.items[k] = o
             self.item_keys.append(k)
@@ -366,7 +351,6 @@ class SyncStore:
 
 
     def __unlock_next(self, item, lst, index):
-        #self.filter_state.state_store.unset(item.state_key, self.filter_state.state_store.LOCK)
         if index == len(lst) - 1:
             item.reset(check_incomplete=False)
         else:
@@ -377,8 +361,9 @@ class SyncStore:
         if index == 0:
             item.reset(check_incomplete=False)
         else:
-            new_state = lst(index)
-            self.filter_state.state_store.from_name(new_state.upper())
+            new_state_str = lst[index - 1]
+            new_state = self.filter_state.state_store.from_name(new_state_str)
+            self.filter_state.state_store.move(item.state_key, new_state)
 
 
     def peek_current_filter(self):
