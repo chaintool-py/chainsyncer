@@ -106,6 +106,8 @@ def main():
 
     store.connect()
     store.start(ignore_lock=True)
+    store.unlock_filter(not action_is_forward)
+    return
 
     lock_state = store.filter_state.from_name('LOCK')
     locked_item = store.filter_state.list(lock_state)

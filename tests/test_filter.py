@@ -19,17 +19,22 @@ from chainsyncer.unittest import (
         MockConn,
         MockTx,
         MockBlock,
+        MockFilterError,
+        state_event_handler,
+        filter_state_event_handler,
         )
 
-logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(level=logging.STATETRACE)
 logg = logging.getLogger()
+
 
 
 class TestFilter(unittest.TestCase):
 
     def setUp(self):
         self.path = tempfile.mkdtemp()
-        self.store = SyncFsStore(self.path)
+        self.store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
         self.session = SyncSession(self.store)
         self.conn = MockConn()
 
@@ -71,6 +76,82 @@ class TestFilter(unittest.TestCase):
         
         self.assertEqual(len(fltr_one.contents), 1)
         self.assertEqual(len(fltr_two.contents), 0)
+
+
+    def test_filter_resume_single_revert(self):
+        fltr_one = MockFilter('foo', brk_hard=True)
+        self.store.register(fltr_one)
+
+        self.session.start()
+
+        item = self.store.get('0')
+        item.next()
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(42, tx_hash)
+        block = MockBlock(13, [tx_hash])
+
+        with self.assertRaises(MockFilterError):
+            self.session.filter(self.conn, block, tx)
+      
+        # Unlock the state, reverting to previous filter
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        self.conn = MockConn()
+        fltr_one = MockFilter('foo')
+        store.register(fltr_one)
+        store.connect()
+        store.start(ignore_lock=True)
+        store.unlock_filter(revert=True)
+
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        session = SyncSession(store)
+        self.conn = MockConn()
+
+        fltr_one = MockFilter('foo')
+        store.register(fltr_one)
+
+        session.start()
+
+        session.filter(self.conn, block, tx)
+
+
+
+    def test_filter_resume_single_continue(self):
+        fltr_one = MockFilter('foo', brk_hard=True)
+        self.store.register(fltr_one)
+
+        self.session.start()
+
+        item = self.store.get('0')
+        item.next()
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(42, tx_hash)
+        block = MockBlock(13, [tx_hash])
+
+        with self.assertRaises(MockFilterError):
+            self.session.filter(self.conn, block, tx)
+      
+        # Unlock the state, reverting to previous filter
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        self.conn = MockConn()
+        fltr_one = MockFilter('foo')
+        store.register(fltr_one)
+        store.connect()
+        store.start(ignore_lock=True)
+        store.unlock_filter(revert=False)
+
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        session = SyncSession(store)
+        self.conn = MockConn()
+
+        fltr_one = MockFilter('foo')
+        store.register(fltr_one)
+        store.connect()
+
+        session.start()
+
+        session.filter(self.conn, block, tx)
 
 
 if __name__ == '__main__':

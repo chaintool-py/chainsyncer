@@ -13,7 +13,8 @@ from chainsyncer.error import NoBlockForYou
 from chainsyncer.driver import SyncDriver
 
 logging.STATETRACE = 5
-logg = logging.getLogger().getChild(__name__)
+logging.addLevelName('STATETRACE', logging.STATETRACE)
+logg = logging.getLogger(__name__)
 
 
 def state_event_handler(k, v_old, v_new):

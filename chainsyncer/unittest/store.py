@@ -232,7 +232,7 @@ class TestStoreBase(unittest.TestCase):
         if self.persist:
             store = self.store_factory('foo')
             store.start()
-            o = store.get(2)
+            o = store.get('2')
 
 
     def t_sync_history_interrupted(self):
@@ -252,7 +252,7 @@ class TestStoreBase(unittest.TestCase):
         store.stop(bogus_item)
         store = self.store_factory('foo')
         store.start()
-        o = store.get(0)
+        o = store.get('0')
         self.assertEqual(o.cursor, 2)
         self.assertEqual(o.target, 13) 
         o.next(advance_block=True)

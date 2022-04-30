@@ -13,6 +13,7 @@ from chainsyncer.error import (
         InterruptError,
         IncompleteFilterError,
         SyncDone,
+        FilterInitializationError,
         )
 
 logg = logging.getLogger(__name__)
@@ -67,13 +68,16 @@ class SyncItem:
 
 
     def resume(self):
+        return
         filter_state = self.filter_state.state(self.state_key)
         if filter_state > 0x0f:
             filter_state_part = self.filter_state.mask(filter_state, 0x0f)
-            if len(self.filter_state.elements(filter_state)) == 1:
-                logg.info('resume execution on state {} ({})'.format(self.filter_state.name(filter_state_part), filter_state_part))
-                lock_state = self.filter_state.from_name('LOCK')
-                self.filter_state.set(lock_state)
+            if filter_state_part > 0:
+                filter_state_part_name = self.filter_state.name(filter_state_part)
+                if filter_state_part_name[0] != '_':
+                    logg.info('resume execution on state {} ({})'.format(self.filter_state.name(filter_state_part), filter_state_part))
+                    lock_state = self.filter_state.from_name('LOCK')
+                    self.filter_state.set(self.state_key, lock_state)
 
 
     def reset(self, check_incomplete=True):
@@ -222,8 +226,9 @@ class SyncStore:
             self.filter_state.put(block_number_str)
             o = SyncItem(offset, target, self.state, self.filter_state, ignore_lock=ignore_lock)
             o.resume()
-            self.items[offset] = o
-            self.item_keys.append(offset)
+            k = str(offset)
+            self.items[k] = o
+            self.item_keys.append(k)
         elif offset > 0:
             logg.warning('block number argument {} for start ignored for already initiated sync {}'.format(offset, self.session_id))
         self.started = True
@@ -272,8 +277,9 @@ class SyncStore:
                 item_target = thresholds[i+1] 
             o = SyncItem(block_number, item_target, self.state, self.filter_state, started=True, ignore_lock=ignore_lock)
             o.resume()
-            self.items[block_number] = o
-            self.item_keys.append(block_number)
+            k = str(block_number)
+            self.items[k] = o
+            self.item_keys.append(k)
             logg.info('added existing {}'.format(o))
 
         self.get_target()
@@ -315,8 +321,65 @@ class SyncStore:
         raise NotImplementedError()
 
 
-    def peek_next_filter(self):
-        pass
+    def __get_locked_item(self):
+        locked_item = self.filter_state.list(self.filter_state.state_store.LOCK)
+        
+        if len(locked_item) == 0:
+            logg.error('Sync filter in store {} is not locked\n'.format(self))
+            return None
+        elif len(locked_item) > 1:
+            raise FilterInitializationError('More than one locked filter item encountered in store {}. That should never happen, so I do not know what to do next.\n'.format(self))
+        return locked_item[0]
+
+
+    def __get_filter_index(self, k):
+        i = -1
+        fltrs = self.load_filter_list()
+        for fltr in fltrs:
+            i += 1
+            if k == fltr.upper():
+                logg.debug('lock filter match at filter list index {}'.format(i))
+        return (i, fltrs,)
+
+
+    def unlock_filter(self, revert=False):
+        locked_item_key = self.__get_locked_item()
+        if locked_item_key == None:
+            return False
+        locked_item = self.get(locked_item_key)
+        locked_state = self.filter_state.state(locked_item_key) - self.filter_state.state_store.LOCK
+        locked_state_name = self.filter_state.name(locked_state)
+
+        logg.debug('found locked item {} in state {}'.format(locked_item, locked_state))
+
+        (i, fltrs) = self.__get_filter_index(locked_state_name)
+
+        if i == -1:
+            raise FilterInitializationError('locked state {} ({}) found for item {}, but matching filter has not been registered'.format(locked_state_name, locked_state, locked_item))
+
+        if revert:
+            self.__unlock_previous(locked_item, fltrs, i)
+        else:
+            self.__unlock_next(locked_item, fltrs, i)
+
+        return True
+
+
+    def __unlock_next(self, item, lst, index):
+        #self.filter_state.state_store.unset(item.state_key, self.filter_state.state_store.LOCK)
+        if index == len(lst) - 1:
+            item.reset(check_incomplete=False)
+        else:
+            item.release()
+
+
+    def __unlock_previous(self, item, lst, index):
+        if index == 0:
+            item.reset(check_incomplete=False)
+        else:
+            new_state = lst(index)
+            self.filter_state.state_store.from_name(new_state.upper())
+
 
     def peek_current_filter(self):
         pass

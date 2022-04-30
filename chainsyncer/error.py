@@ -31,16 +31,25 @@ class LockError(Exception):
 class FilterDone(Exception):
     """Exception raised when all registered filters have been executed
     """
+    pass
 
 
 class InterruptError(FilterDone):
     """Exception for interrupting or attempting to use an interrupted sync
     """
+    pass
 
 
 class IncompleteFilterError(Exception):
     """Exception raised if filter reset is executed prematurely
     """
+    pass
+
+
+class FilterInitializationError(BackendError):
+    """Exception raised if filter state does not match the registered filters
+    """
+    pass
 
 #class AbortTx(Exception):
 #    """
