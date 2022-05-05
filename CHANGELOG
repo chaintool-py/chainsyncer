@@ -1,3 +1,6 @@
+* 0.4.5
+	- Upgrade chainlib
+	- Upgrade shep to guarantee atomic state locks
 * 0.4.4
 	- Reinstate tx index bump in sync state on filter execution complete
 * 0.4.3

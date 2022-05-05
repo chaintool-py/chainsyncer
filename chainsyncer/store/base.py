@@ -43,7 +43,6 @@ class SyncItem:
         self.filter_state = filter_state
         self.state_key = str(offset)
 
-        logg.debug('get key {}'.format(self.state_key))
         v = self.sync_state.get(self.state_key)
 
         (self.cursor, self.tx_cursor, self.target) = sync_state_deserialize(v)
@@ -99,10 +98,6 @@ class SyncItem:
 
         b = sync_state_serialize(block_number, tx_index, target)
         self.sync_state.replace(self.state_key, b)
-
-
-    def __find_advance(self):
-        v = self.filter_state.state(self.state_key)
 
 
     def advance(self, ignore_lock=False):
@@ -267,7 +262,9 @@ class SyncStore:
             self.item_keys.append(k)
             logg.info('added existing {}'.format(o))
 
-        self.get_target()
+        v = self.get_target()
+        if v != None:
+            target = v
         
         if len(thresholds) == 0:
             if self.target != None:

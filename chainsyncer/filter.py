@@ -97,7 +97,6 @@ class FilterState:
             if self.scan != None:
                 ks = self.scan()
                 for v in ks: #os.listdir(self.scan_path):
-                    logg.debug('ks {}'.format(v))
                     k = None
                     try:
                         k = self.state_store.from_elements(v)
