@@ -41,5 +41,5 @@ class SyncSession:
             if not self.item.release(interrupt=interrupt):
                 break
         self.item.reset()
-        #self.next()
+        self.next()
         self.session_store.disconnect()

@@ -1,3 +1,13 @@
+* 0.4.4
+	- Reinstate tx index bump in sync state on filter execution complete
+* 0.4.3
+	- Refactor lock code, move into module from runnable script
+* 0.4.2
+	- Same as 0.4.1
+* 0.4.1
+	- Correct runnable entry in setup
+* 0.4.0
+	- Refactor on shep
 * 0.3.7
 	- Remove hard eth dependency in settings rendering
 	- Add unlock cli tool
