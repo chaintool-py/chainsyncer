@@ -24,7 +24,8 @@ class SyncFsStore(SyncStore):
             create_path = True
 
         if create_path:
-            self.__create_path(base_path, self.default_path, session_id=session_id)
+            #self.__create_path(base_path, self.default_path, session_id=session_id)
+            os.makedirs(self.session_path)
 
         self.session_id = os.path.basename(self.session_path)
         logg.info('session id {} resolved {} path {}'.format(session_id, self.session_id, self.session_path))
