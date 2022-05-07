@@ -1,3 +1,5 @@
+* 0.4.8
+	- Add unlock action description to info loglevel for unlock tool
 * 0.4.7
 	- Upgrade shep to avoid sync in persist set
 * 0.4.6

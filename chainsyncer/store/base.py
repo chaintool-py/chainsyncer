@@ -329,7 +329,8 @@ class SyncStore:
         if locked_item_key == None:
             return False
         locked_item = self.get(locked_item_key)
-        locked_state = self.filter_state.state(locked_item_key) - self.filter_state.state_store.LOCK
+        state = self.filter_state.state(locked_item_key)
+        locked_state = state - self.filter_state.state_store.LOCK
         locked_state_name = self.filter_state.name(locked_state)
 
         logg.debug('found locked item {} in state {}'.format(locked_item, locked_state))
@@ -339,10 +340,17 @@ class SyncStore:
         if i == -1:
             raise FilterInitializationError('locked state {} ({}) found for item {}, but matching filter has not been registered'.format(locked_state_name, locked_state, locked_item))
 
+        direction = None
         if revert:
             self.__unlock_previous(locked_item, fltrs, i)
+            new_state = self.filter_state.state(locked_item_key)
+            direction = 'previous'
         else:
             self.__unlock_next(locked_item, fltrs, i)
+            new_state = self.filter_state.state(locked_item_key)
+            direction = 'next'
+
+        logg.info('chainstate unlock to {} {} ({}) -> {} ({})'.format(direction, self.filter_state.name(state), state, self.filter_state.name(new_state), new_state))
 
         return True
 
