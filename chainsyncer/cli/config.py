@@ -17,4 +17,6 @@ def process_config(config, args, flags):
             config.add(getattr(args, 'keep_alive'), '_KEEP_ALIVE')
             config.add(getattr(args, 'head'), '_HEAD')
 
+        config.add(getattr(args, 'single'), '_SINGLE')
+
         return config
