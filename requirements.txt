@@ -1,5 +1,5 @@
-confini~=0.6.0
+confini~=0.6.1
 semver==2.13.0
-hexathon~=0.1.6
-chainlib~=0.2.0
+hexathon~=0.1.7
+chainlib~=0.3.0
 shep~=0.2.9
