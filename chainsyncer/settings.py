@@ -11,11 +11,6 @@ from chainlib.settings import ChainSettings
 logg = logging.getLogger(__name__)
 
 
-def process_sync_backend(settings, config):
-    settings.set('SYNCER_BACKEND', config.get('SYNCER_BACKEND'))
-    return settings
-
-
 def process_sync_range(settings, config):
     o = settings.get('SYNCER_INTERFACE').block_latest()
     r = settings.get('CONN').do(o)
