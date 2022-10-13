@@ -9,7 +9,7 @@ for f in `ls tests/*.py`; do
 	fi
 done
 
-for f in `ls tests/store/*.py`; do
+for f in `ls tests/store/test_*_*.py`; do
 	python $f
 	if [ $? -gt 0 ]; then
 		exit

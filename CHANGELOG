@@ -1,3 +1,5 @@
+* 0.5.0
+	- Avoid crash on no registered filters
 * 0.4.8
 	- Add unlock action description to info loglevel for unlock tool
 * 0.4.7

@@ -51,11 +51,14 @@ class SyncItem:
         if filter_state  & self.filter_state.from_name('LOCK') > 0 and not ignore_lock:
             raise LockError(self.state_key)
 
-        self.count = len(self.filter_state.all(pure=True)) - 4
+        all_states = self.filter_state.all(pure=True)
+        logg.info('all {}'.format(all_states))
+        self.count = len(all_states) - 5
+        logg.info('sounce {}'.format(self.count))
         self.skip_filter = False
-        if self.count == 0:
-            self.skip_filter = True
-        elif not started:
+        #if self.count == 0:
+        #    self.skip_filter = True
+        if not started:
             self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
         
 
@@ -68,10 +71,11 @@ class SyncItem:
 
     def reset(self, check_incomplete=True):
         if check_incomplete:
-            if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
-                raise LockError('reset attempt on {} when state locked'.format(self.state_key))
-            if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') == 0:
-                raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
+            if self.count > 0:
+                if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:
+                    raise LockError('reset attempt on {} when state locked'.format(self.state_key))
+                if self.filter_state.state(self.state_key) & self.filter_state.from_name('DONE') == 0:
+                    raise IncompleteFilterError('reset attempt on {} when incomplete'.format(self.state_key))
         self.filter_state.move(self.state_key, self.filter_state.from_name('RESET'))
 
         
@@ -101,8 +105,8 @@ class SyncItem:
 
 
     def advance(self, ignore_lock=False):
-        if self.skip_filter:
-            raise FilterDone()
+        #if self.skip_filter:
+        #    raise FilterDone()
         self.__check_done()
 
         if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:

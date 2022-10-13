@@ -54,6 +54,7 @@ class FilterState:
         self.peek = self.state_store.peek
         self.from_name = self.state_store.from_name
         self.list = self.state_store.list
+        self.count = self.state_store.count
         self.state_store.sync()
         self.all = self.state_store.all
         self.started = False
