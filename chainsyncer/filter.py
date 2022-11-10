@@ -18,7 +18,7 @@ class SyncFilter:
         return h.digest()
         
 
-    def filter(self, conn, block, tx):
+    def filter(self, conn, block, tx, **kwargs):
         raise NotImplementedError()
 
 
