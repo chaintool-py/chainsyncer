@@ -52,9 +52,7 @@ class SyncItem:
             raise LockError(self.state_key)
 
         all_states = self.filter_state.all(pure=True)
-        logg.info('all {}'.format(all_states))
         self.count = len(all_states) - 5
-        logg.info('sounce {}'.format(self.count))
         self.skip_filter = False
         #if self.count == 0:
         #    self.skip_filter = True
