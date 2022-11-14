@@ -1,1 +1,1 @@
-include *requirements.txt LICENSE.txt chainsyncer/data/config/*
+include *requirements.txt LICENSE WAIVER WAIVER.asc chainsyncer/data/config/*
