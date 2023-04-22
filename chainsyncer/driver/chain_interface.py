@@ -36,7 +36,6 @@ class ChainInterfaceDriver(SyncDriver):
 
 
     def process(self, conn, item, block):
-        tx_src = None
         i = item.tx_cursor
         while True:
             # handle block objects regardless of whether the tx data is embedded or not
@@ -46,7 +45,6 @@ class ChainInterfaceDriver(SyncDriver):
                 tx_hash = block.txs[i]
                 o = self.chain_interface.tx_by_hash(tx_hash, block=block)
                 r = conn.do(o)
-                #tx = self.chain_interface.tx_from_src(tx_src, block=block)
 
             rcpt = conn.do(self.chain_interface.tx_receipt(tx.hash))
             if rcpt != None:
