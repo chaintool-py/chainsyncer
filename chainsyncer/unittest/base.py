@@ -157,7 +157,7 @@ class MockFilter:
         return self.name 
 
 
-    def filter(self, conn, block, tx):
+    def filter(self, conn, block, tx, ctx=None):
         r = False
         if self.brk_hard != None:
             r = True

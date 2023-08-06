@@ -40,6 +40,7 @@ class SyncDriver:
         self.clock_id = time.CLOCK_MONOTONIC_RAW
         self.store.connect()
         self.store.start(offset=offset, target=target)
+        self.item = None
         if not SyncDriver.signal_set:
             for sig in SyncDriver.signal_request:
                 signal.signal(sig, self.__sig_terminate)
@@ -57,17 +58,18 @@ class SyncDriver:
         logg.info('termination requested!')
         SyncDriver.running_global = False
         self.running = False
+        self.session.stop(self.item)
 
 
-    def run(self, conn, interval=1):
+    def run(self, conn, interval=1, ctx=None):
         while self.running_global:
-            self.session = SyncSession(self.store)
-            item = self.session.start()
-            if item == None:
+            self.session = SyncSession(self.store, ctx=ctx)
+            self.item = self.session.start()
+            if self.item == None:
                 self.running = False
                 self.running_global = False
                 break
-            self.loop(conn, item, interval=interval)
+            self.loop(conn, self.item, interval=interval)
 
 
     def idle(self, interval):

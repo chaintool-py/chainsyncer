@@ -1,3 +1,5 @@
+* 0.8.1
+	- Add context field to receive key-value collections from calling agent
 * 0.8.0
 	- Enable batch rpc retrievals of receipts
 * 0.7.1
