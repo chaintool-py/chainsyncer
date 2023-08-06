@@ -221,6 +221,10 @@ class MockDriver(SyncDriver):
 
 class MockChainInterface:
 
+    def __init__(self, batch_limit=1):
+        self.batch_limit = batch_limit
+
+
     def block_by_number(self, number):
         return ('block_by_number', number,)
 
