@@ -23,9 +23,11 @@ class SyncSession:
         return self.session_store.get(str(k))
    
 
-    def start(self, offset=0, target=-1):
+    def start(self, offset=0, target=-1, ctx=None):
         self.session_store.start(offset=offset, target=target)
         self.item = self.session_store.next_item()
+        for fltr in self.filters:
+            fltr.prepare(ctx=ctx)
         return self.item
 
 

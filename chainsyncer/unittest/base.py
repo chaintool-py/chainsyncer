@@ -11,6 +11,7 @@ from shep.state import State
 #from chainsyncer.driver.history import HistorySyncer
 from chainsyncer.error import NoBlockForYou
 from chainsyncer.driver import SyncDriver
+from chainsyncer.filter import SyncFilter
 
 logging.STATETRACE = 5
 logging.addLevelName('STATETRACE', logging.STATETRACE)
@@ -135,7 +136,7 @@ class MockStore(State):
         pass
 
 
-class MockFilter:
+class MockFilter(SyncFilter):
 
     def __init__(self, name, brk=None, brk_hard=None, z=None):
         self.name = name

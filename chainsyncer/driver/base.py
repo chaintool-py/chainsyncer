@@ -64,7 +64,7 @@ class SyncDriver:
     def run(self, conn, interval=1, ctx=None):
         while self.running_global:
             self.session = SyncSession(self.store, ctx=ctx)
-            self.item = self.session.start()
+            self.item = self.session.start(ctx=ctx)
             if self.item == None:
                 self.running = False
                 self.running_global = False
@@ -129,7 +129,6 @@ class SyncDriver:
             if self.post_callback != None:
                 self.post_callback(conn)
    
-
             self.idle(interval)
 
 

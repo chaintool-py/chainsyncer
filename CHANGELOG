@@ -1,3 +1,5 @@
+* 0.8.2
+	- Add filter prepare method (with context) to interface
 * 0.8.1
 	- Add context field to receive key-value collections from calling agent
 * 0.8.0

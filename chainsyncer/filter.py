@@ -11,6 +11,10 @@ re_processedname = r'^_?[A-Z,\.]*$'
 
 class SyncFilter:
 
+    def prepare(self, ctx=None):
+        return
+   
+
     def sum(self):
         s = self.common_name()
         h = hashlib.sha256()
@@ -60,6 +64,8 @@ class FilterState:
         self.started = False
 
         self.scan = scan
+
+        self.filters = []
 
 
     def __verify_sum(self, v):
@@ -125,7 +131,3 @@ class FilterState:
 
     def next_item(self):
         return None
-
-
-    def filters(self):
-        return []
