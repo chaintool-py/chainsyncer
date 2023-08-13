@@ -1,3 +1,6 @@
+* 0.8.3
+	- Apply dialect on receipts and block tx constructors
+	- Avoid filter state crash when no filters defined
 * 0.8.2
 	- Add filter prepare method (with context) to interface
 * 0.8.1

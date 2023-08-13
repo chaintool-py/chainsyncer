@@ -47,7 +47,7 @@ class ChainInterfaceDriver(SyncDriver):
             hsh = txs[j].hash
             o = self.chain_interface.tx_receipt(hsh)
             r = conn.do(o)
-            txs[j].apply_receipt(r)
+            txs[j].apply_receipt(r, dialect_filter=self.chain_interface.dialect_filter)
             logg.debug('get receipt {}/{}: {}'.format(j+1, c, hsh))
             i += 1
         return i
@@ -70,7 +70,7 @@ class ChainInterfaceDriver(SyncDriver):
         for j in range(len(rcpts)):
             rcpt = rcpts_r[j]
             if rcpt != None:
-                txs[j].apply_receipt(self.chain_interface.src_normalize(rcpt))
+                txs[j].apply_receipt(self.chain_interface.src_normalize(rcpt), dialect_filter=self.chain_interface.dialect_filter)
             i += 1
         return i
 
@@ -81,16 +81,20 @@ class ChainInterfaceDriver(SyncDriver):
         while True:
             # handle block objects regardless of whether the tx data is embedded or not
             try:
-                tx = block.tx(i)
-            except AttributeError:
-                tx_hash = block.txs[i]
-                o = self.chain_interface.tx_by_hash(tx_hash, block=block)
+                tx = block.tx(i, dialect_filter=self.chain_interface.dialect_filter)
+            except AttributeError as e:
+                try:
+                    tx_hash = block.txs[i]
+                except IndexError:
+                    break
+                o = self.chain_interface.tx_by_hash(tx_hash)
                 r = conn.do(o)
-            except IndexError:
+                tx = self.chain_interface.tx_from_src(r, block=block)
+            except IndexError as e:
                 break
             txs.append(tx)
             i += 1
-  
+
         j = len(txs)
         i = 0
         while i < j:
@@ -98,4 +102,5 @@ class ChainInterfaceDriver(SyncDriver):
 
         for tx in txs:
             self.process_single(conn, block, tx)
+
         raise IndexError()

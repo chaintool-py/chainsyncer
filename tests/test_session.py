@@ -151,5 +151,19 @@ class TestFilter(unittest.TestCase):
         self.assertEqual(len(fltr_one.contents), 6)
 
 
+    def test_resume_nofilter(self):
+        #drv = MockDriver(self.store, interrupt_block=7, target=10)
+        drv = MockDriver(self.store, target=2)
+        generator = MockBlockGenerator()
+        generator.generate([3, 1, 1], driver=drv)
+        with self.assertRaises(SyncDone):
+            drv.run(self.conn, interval=0.1)
+
+        drv = MockDriver(self.store, target=4)
+        generator = MockBlockGenerator(offset=3)
+        generator.generate([3, 1, 1], driver=drv)
+        drv.run(self.conn, interval=0.1)
+
+
 if __name__ == '__main__':
     unittest.main()

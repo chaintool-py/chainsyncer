@@ -68,6 +68,8 @@ class SyncItem:
 
 
     def reset(self, check_incomplete=True):
+        if self.filter_state.state(self.state_key) & self.filter_state.from_name('RESET') > 0:
+            return
         if check_incomplete:
             if self.count > 0:
                 if self.filter_state.state(self.state_key) & self.filter_state.from_name('LOCK') > 0:

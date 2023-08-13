@@ -6,6 +6,7 @@ import hashlib
 # external imports
 from hexathon import add_0x
 from shep.state import State
+from chainlib.interface import ChainInterface
 
 # local imports
 #from chainsyncer.driver.history import HistorySyncer
@@ -88,12 +89,12 @@ class MockTx:
     :param tx_hash: Transaction hash
     :type tx_hash: str
     """
-    def __init__(self, index, tx_hash):
+    def __init__(self, index, tx_hash, dialect_filter=None):
         self.hash = tx_hash
         self.index = index
 
 
-    def apply_receipt(self, rcpt):
+    def apply_receipt(self, rcpt, dialect_filter=None):
         """Save receipt source in mock tx object.
 
         :param rcpt: Transaction receipt
@@ -117,13 +118,13 @@ class MockBlock:
         self.hash = os.urandom(32).hex()
 
 
-    def tx(self, i):
+    def tx(self, i, dialect_filter=None):
         """Get block transaction at given index.
 
         :param i: Transaction index
         :type i: int
         """
-        return MockTx(i, self.txs[i].hash)
+        return MockTx(i, self.txs[i].hash, dialect_filter=dialect_filter)
 
 
 class MockStore(State):
@@ -220,10 +221,11 @@ class MockDriver(SyncDriver):
             i += 1
 
 
-class MockChainInterface:
+class MockChainInterface(ChainInterface):
 
-    def __init__(self, batch_limit=1):
-        self.batch_limit = batch_limit
+    #def __init__(self, dialect_filter=None, batch_limit=1):
+    #    self.dialect_filter = dialect_filter
+    #    self.batch_limit = batch_limit
 
 
     def block_by_number(self, number):
@@ -244,6 +246,12 @@ class MockChainInterface:
 
     def tx_receipt(self, hsh):
         return ('receipt', hsh,)
+
+
+    def tx_from_src(self, src, block=None):
+        b = os.urandom(32)
+        return MockTx(0, b.hex())
+
 
 
 class MockChainInterfaceConn(MockConn):
@@ -273,6 +281,10 @@ class MockChainInterfaceConn(MockConn):
 
     def handle_receipt(self, hsh):
         return {}
+
+
+    def handle_tx_by_hash(self, hsh):
+        return None
 
 
 class MockItem:
