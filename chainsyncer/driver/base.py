@@ -116,6 +116,7 @@ class SyncDriver:
                     break
                 if self.block_callback != None:
                     self.block_callback(conn, block)
+                logg.info('syncing block {}: {}'.format(block.number, block.hash))
 
                 try:
                     self.process(conn, item, block)
@@ -133,6 +134,7 @@ class SyncDriver:
 
 
     def process_single(self, conn, block, tx):
+        logg.info('processing tx {}: {}'.format(tx.index, tx.hash))
         self.session.filter(conn, block, tx)
 
 
