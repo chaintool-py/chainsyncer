@@ -351,6 +351,60 @@ class TestFilter(unittest.TestCase):
         session.filter(self.conn, block, tx)
 
 
+    # harness testing
+    def test_filter_breakpoint(self):
+        fltr_one = MockFilter('foo', brk=3, brk_points=[(2, 3,), (3, 0,)])
+        self.store.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        self.store.register(fltr_two)
+
+        self.session.start()
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(2, tx_hash)
+        block = MockBlock(1, [tx_hash])
+        self.session.filter(self.conn, block, tx)
+        
+        self.assertEqual(len(fltr_one.contents), 1)
+        self.assertEqual(len(fltr_two.contents), 1)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(2, tx_hash)
+        block = MockBlock(2, [tx_hash])
+        self.session.filter(self.conn, block, tx)
+        
+        self.assertEqual(len(fltr_one.contents), 2)
+        self.assertEqual(len(fltr_two.contents), 2)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(3, tx_hash)
+        block = MockBlock(2, [tx_hash])
+        self.session.filter(self.conn, block, tx)
+        self.assertEqual(len(fltr_one.contents), 3)
+        self.assertEqual(len(fltr_two.contents), 2)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(0, tx_hash)
+        block = MockBlock(3, [tx_hash])
+        self.session.filter(self.conn, block, tx)
+        self.assertEqual(len(fltr_one.contents), 4)
+        self.assertEqual(len(fltr_two.contents), 2)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(2, tx_hash)
+        block = MockBlock(4, [tx_hash])
+        self.session.filter(self.conn, block, tx)
+        self.assertEqual(len(fltr_one.contents), 5)
+        self.assertEqual(len(fltr_two.contents), 2)
+
+        tx_hash = os.urandom(32).hex()
+        tx = MockTx(3, tx_hash)
+        block = MockBlock(4, [tx_hash])
+        self.session.filter(self.conn, block, tx)
+        self.assertEqual(len(fltr_one.contents), 6)
+        self.assertEqual(len(fltr_two.contents), 3)
+
+
 if __name__ == '__main__':
     unittest.main()
 

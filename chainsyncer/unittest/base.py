@@ -139,7 +139,7 @@ class MockStore(State):
 
 class MockFilter(SyncFilter):
 
-    def __init__(self, name, brk=None, brk_hard=None, z=None):
+    def __init__(self, name, brk=None, brk_hard=None, brk_points=[], z=None):
         self.name = name
         if z == None:
             h = hashlib.sha256()
@@ -148,6 +148,7 @@ class MockFilter(SyncFilter):
         self.z = z
         self.brk = brk
         self.brk_hard = brk_hard
+        self.brk_points = brk_points
         self.contents = []
 
 
@@ -159,8 +160,14 @@ class MockFilter(SyncFilter):
         return self.name 
 
 
-    def filter(self, conn, block, tx, ctx=None):
+    def brkchk(self, block, tx):
         r = False
+        if len(self.brk_points) > 0:
+            if block.number == self.brk_points[0][0] and tx.index == self.brk_points[0][1]:
+                logg.debug('break point hit: {}'.format(self.brk_points[0]))
+                self.brk_points.pop(0)
+            else:
+                return r
         if self.brk_hard != None:
             r = True
             if self.brk_hard > 0:
@@ -172,6 +179,11 @@ class MockFilter(SyncFilter):
             if self.brk > 0:
                 r = True
             self.brk -= 1
+        return r
+
+
+    def filter(self, conn, block, tx, ctx=None):
+        r = self.brkchk(block, tx)
         self.contents.append((block.number, tx.index, tx.hash,))
         logg.debug('filter {} result {} block {} tx {} {}'.format(self.common_name(), r, block.number, tx.index, tx.hash))
         return r
@@ -212,8 +224,9 @@ class MockDriver(SyncDriver):
                 if self.interrupt[0] == block.number and self.interrupt[1] == i:
                     logg.info('interrupt triggered at {}'.format(self.interrupt))
                     if self.interrupt_global:
-                        SyncDriver.running_global = False
-                    self.running = False
+                        self.terminate()
+                    else:
+                        self.running = False
                     break
             tx = block.tx(i)
             self.process_single(conn, block, tx)

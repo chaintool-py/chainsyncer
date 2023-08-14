@@ -1,3 +1,8 @@
+* 0.8.5
+	- Upgrade shep to eliminate state deletion after interrupted partial filter list execution
+	- Add block/tx break points for filter breaks in unittest filter mocker
+* 0.8.4
+	- Add block and tx processing log entries at info level
 * 0.8.3
 	- Apply dialect on receipts and block tx constructors
 	- Avoid filter state crash when no filters defined

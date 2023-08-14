@@ -193,6 +193,7 @@ class SyncStore:
 
 
     def register(self, fltr):
+        logg.info('register filter {}'.format(fltr))
         self.filters.append(fltr)
         self.filter_state.register(fltr)
 
@@ -269,7 +270,7 @@ class SyncStore:
         v = self.get_target()
         if v != None:
             target = v
-        
+
         if len(thresholds) == 0:
             if self.target != None:
                 logg.warning('sync "{}" is already done, nothing to do'.format(self.session_id))

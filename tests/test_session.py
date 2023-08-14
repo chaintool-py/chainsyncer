@@ -151,7 +151,32 @@ class TestFilter(unittest.TestCase):
         self.assertEqual(len(fltr_one.contents), 6)
 
 
-    def test_resume_nofilter(self):
+    def test_driver_open_interrupt_sync_multifilter(self):
+        drv = MockDriver(self.store, interrupt_block=2, target=-1)
+        generator = MockBlockGenerator()
+        generator.generate([3, 1, 2], driver=drv)
+
+        fltr_one = MockFilter('foo_bar')
+        self.store.register(fltr_one)
+
+        fltr_two = MockFilter('bar_baz')
+        self.store.register(fltr_two)
+
+        drv.run(self.conn, interval=0.1)
+
+        logg.info('resume')
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        store.register(fltr_one)
+        store.register(fltr_two)
+        
+        drv = MockDriver(store, interrupt_block=4, target=-1)
+        generator = MockBlockGenerator(offset=2)
+        generator.generate([3, 1, 2, 5, 3], driver=drv)
+
+        drv.run(self.conn, interval=0.1)
+
+
+    def test_driver_resume_nofilter(self):
         #drv = MockDriver(self.store, interrupt_block=7, target=10)
         drv = MockDriver(self.store, target=2)
         generator = MockBlockGenerator()
@@ -162,6 +187,29 @@ class TestFilter(unittest.TestCase):
         drv = MockDriver(self.store, target=4)
         generator = MockBlockGenerator(offset=3)
         generator.generate([3, 1, 1], driver=drv)
+        drv.run(self.conn, interval=0.1)
+
+
+    def test_driver_coldresume_interrupt(self):
+        drv = MockDriver(self.store, interrupt_block=2, interrupt_global=True, target=-1)
+        generator = MockBlockGenerator()
+        generator.generate([3, 1, 2, 4], driver=drv)
+
+        fltr_one = MockFilter('foo', brk=10) # will break on all "foo" filter invocations
+        self.store.register(fltr_one)
+        fltr_two = MockFilter('bar')
+        self.store.register(fltr_two)
+
+        drv.run(self.conn, interval=0.1)
+
+        logg.info('resume')
+        SyncDriver.running_global = True
+        store = SyncFsStore(self.path, state_event_callback=state_event_handler, filter_state_event_callback=filter_state_event_handler)
+        store.register(fltr_one)
+        store.register(fltr_two)
+        drv = MockDriver(store, interrupt_block=4, target=-1)
+        generator = MockBlockGenerator(offset=2)
+        generator.generate([4, 1, 2], driver=drv)
         drv.run(self.conn, interval=0.1)
 
 
